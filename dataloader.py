@@ -52,7 +52,7 @@ class ImageDataset(Dataset):
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])'''
             self.transforms = A.Compose([
-                A.Resize(CONFIG['img_size'], CONFIG['img_size']),
+                A.Resize(image_size, image_size),
                 A.Normalize(
                         mean=[0.485, 0.456, 0.406], 
                         std=[0.229, 0.224, 0.225], 
