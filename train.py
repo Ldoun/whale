@@ -175,7 +175,7 @@ def main(index, args):
             ), device
         )
         
-        model = efficientnet_base(base_model=args.model,base_model_ouput_dim=1000)
+        model = efficientnet_base(base_model=args.model,ouput_dim=1000)
         model.apply(reset_weights)
         model.to(device)
         

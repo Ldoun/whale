@@ -4,6 +4,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
+from meta_data import label_encoder
 
 class ImageDataset(Dataset):
     def __init__(
@@ -17,7 +18,7 @@ class ImageDataset(Dataset):
         self.path = image_root_path
         self.data = dataframe.copy()
         self.mode = mode
-        self.label_encoder = None
+        self.label_encoder = label_encoder
         
         if self.mode == 'train':
             self.transforms = transforms.Compose([
@@ -38,9 +39,6 @@ class ImageDataset(Dataset):
                     
     def __len__(self):
         return len(self.data)
-    
-    def set_label_encoder(self, encoder):
-        self.label_encoder = encoder
     
     def __getitem__(self, idx):
         image = Image.open(self.data.iloc[idx]['image'])
