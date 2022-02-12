@@ -156,7 +156,7 @@ def main(index, args):
             DataLoader(
                 train_dataset,
                 batch_size=args.batch_size,
-                num_workers=32,
+                num_workers=10,
                 sampler=train_sampler,
                 pin_memory=True,
                 drop_last=True,
@@ -167,7 +167,7 @@ def main(index, args):
             DataLoader(
                 valid_dataset,
                 batch_size=args.batch_size,
-                num_workers=32,
+                num_workers=10,
                 sampler=valid_sampler,
                 pin_memory=True,
                 shuffle=False,

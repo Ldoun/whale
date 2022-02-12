@@ -34,7 +34,7 @@ def valid_logging(writer, epoch,total_epoch,step,n_iters, losses,correct,total):
 		)
         
         writer.add_scalar('Accuracy/valid',
-            100.0 * (correct[0] / total[0]), 
+            100.0 * (correct / total), 
             epoch * n_iters + step
 		)
    
