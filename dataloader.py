@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 from meta_data import label_encoder
+import numpy as np
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
@@ -66,11 +67,11 @@ class ImageDataset(Dataset):
         return len(self.data)
     
     def __getitem__(self, idx):
-        image = Image.open(os.path.join(self.path,self.data.iloc[idx]['image']))
+        image = np.array(Image.open(os.path.join(self.path,self.data.iloc[idx]['image'])))
         label = self.label_encoder[self.data.iloc[idx]['individual_id']]
         
         #image = self.transforms(image)
-        img = self.transforms(image=img)["image"]
+        image = self.transforms(image=image)["image"]
         label = torch.LongTensor([label])
         
         return {'image':image, 'label':label}
