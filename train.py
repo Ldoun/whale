@@ -175,14 +175,14 @@ def main(index, args):
             ), device
         )
         
-        model = efficientnet_base(base_model=args.model,ouput_dim=1000)
+        model = efficientnet_base(base_model=args.model,ouput_dim=15587)
         model.apply(reset_weights)
         model.to(device)
         
         lr = args.lr * xm.xrt_world_size()
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
         criterion = FocalLoss()()
-            
+        
         start_epoch = 0
         if fold == args.reload_folder_from and args.reload_epoch_from:
             if args.reload_model_from == "":
