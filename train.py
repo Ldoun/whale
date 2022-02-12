@@ -135,8 +135,8 @@ def main(index, args):
             print(f'FOLD {fold}')
             print('--------------------------------')
 
-        train_dataset = ImageDataset(args.img_folder, data.iloc[train_ids], mode = 'train')        
-        valid_dataset = ImageDataset(args.img_folder, data.iloc[valid_ids], mode = 'valid')
+        train_dataset = ImageDataset(args.img_folder, data.iloc[train_ids], 448, mode = 'train')        
+        valid_dataset = ImageDataset(args.img_folder, data.iloc[valid_ids], 448, mode = 'valid')
         
         train_sampler = torch.utils.data.distributed.DistributedSampler(
             train_dataset,
