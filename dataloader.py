@@ -67,7 +67,7 @@ class ImageDataset(Dataset):
         return len(self.data)
     
     def __getitem__(self, idx):
-        image = np.array(Image.open(os.path.join(self.path,self.data.iloc[idx]['image'])))
+        image = np.array(Image.open(os.path.join(self.path,self.data.iloc[idx]['image'])).convert('RGB'))
         label = self.label_encoder[self.data.iloc[idx]['individual_id']]
         
         #image = self.transforms(image)

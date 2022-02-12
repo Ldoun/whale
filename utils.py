@@ -28,12 +28,12 @@ def valid_logging(writer, epoch,total_epoch,step,n_iters, losses,correct,total):
 	)
     
     if writer:
-        writer.add_scalars('Loss/valid',
+        writer.add_scalar('Loss/valid',
 			np.mean(losses),
             epoch * n_iters + step
 		)
         
-        writer.add_scalars('Accuracy/valid',
+        writer.add_scalar('Accuracy/valid',
             100.0 * (correct[0] / total[0]), 
             epoch * n_iters + step
 		)
@@ -53,7 +53,7 @@ def train_logging(writer, epoch,total_epoch,step,n_iters,elapsed, losses, write_
     )
     
     if writer:
-        writer.add_scalars('Loss/train',
+        writer.add_scalar('Loss/train',
 			np.mean(losses), 
             epoch * n_iters + step
 		)
