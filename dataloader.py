@@ -41,7 +41,7 @@ class ImageDataset(Dataset):
         return len(self.data)
     
     def __getitem__(self, idx):
-        image = Image.open(os.path.join(self.image_root_path,self.data.iloc[idx]['image']))
+        image = Image.open(os.path.join(self.path,self.data.iloc[idx]['image']))
         label = self.label_encoder[self.data.iloc[idx]['individual_id']]
         
         image = self.transforms(image)
