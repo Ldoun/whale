@@ -18,6 +18,6 @@ subprocess.call([
     '--reload_epoch_from', '0',
     '--reload_folder_from', '0',
     '--reload_model_from', '',
-    '--model', 'efficientnet_b5',
+    '--model', 'efficientnet_b3',
     '--model_name', 'first_trial',
 ])
