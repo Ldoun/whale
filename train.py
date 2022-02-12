@@ -181,7 +181,7 @@ def main(index, args):
         
         lr = args.lr * xm.xrt_world_size()
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        criterion = FocalLoss()()
+        criterion = FocalLoss()
         
         start_epoch = 0
         if fold == args.reload_folder_from and args.reload_epoch_from:
