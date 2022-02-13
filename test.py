@@ -16,7 +16,6 @@ import torch_xla.distributed.xla_multiprocessing as xmp
 import torch_xla.test.test_utils as test_utils
 from tensorboardX import SummaryWriter
 from sklearn.model_selection import KFold, StratifiedKFold, train_test_split
-from torch.utils.data import random_split
 
 from models.efficientnet import efficientnet_base
 from dataloader import ImageDataset
@@ -123,7 +122,7 @@ def main(index, args):
     if args.reload_epoch_from:
         print(f'starting from {args.reload_folder_from} folder, {args.reload_epoch_from} epoch {args.reload_model_from} model')
     
-    train, valid = random_split(data, test_size=0.5)
+    train, valid = train_test_split(data, test_size=0.5)
         
     writer = None
     if xm.is_master_ordinal():
