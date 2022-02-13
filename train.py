@@ -23,13 +23,13 @@ from utils import *
 from loss import FocalLoss
 
 def train_loop(args, writer, model, optimizer, criterion, train_dataloader, epoch):
+    model.train()
     itr_start_time = time.time()
     n_iters = len(train_dataloader)
     
     losses = []
     
     for step, batch in enumerate(train_dataloader, start=1):
-        model.train()
         optimizer.zero_grad()
         
         image = batch['image']
