@@ -100,7 +100,7 @@ def save_model(args, model, optimizer, fold, epoch):
     }
     
     os.makedirs(args.ckt_folder, exist_ok=True)
-    save_dir = os.path.join(args.ckt_folder, f"{args.model_name}-checkpoint_{fold}fold_{epoch}epoch")
+    save_dir = os.path.join(args.ckt_folder, f"{args.model_name}-checkpoint_5_5_{epoch}epoch")
     
     xm.save(dict_for_infer, save_dir)
 
@@ -119,7 +119,6 @@ def main(index, args):
     
     data = pd.read_csv(args.train_csv)
     label = data['species'].values  # try with individual_id
-    kfold = StratifiedKFold(n_splits=args.n_fold, shuffle=True)
     
     if args.reload_epoch_from:
         print(f'starting from {args.reload_folder_from} folder, {args.reload_epoch_from} epoch {args.reload_model_from} model')
@@ -179,16 +178,6 @@ def main(index, args):
     criterion = FocalLoss()
     
     start_epoch = 0
-    if fold == args.reload_folder_from and args.reload_epoch_from:
-        if args.reload_model_from == "":
-            raise('need model file name')
-        
-        print('loading model')
-        start_epoch = args.reload_epoch_from
-        save_dir = os.path.join(args.ckt_folder, args.reload_model_from)
-        checkpoint = torch.load(save_dir)
-        optimizer.load_state_dict(checkpoint['opt'])
-        model.load_state_dict(checkpoint['model'])
         
 
     for epoch in range(start_epoch, args.total_epoch + 1):
@@ -198,7 +187,7 @@ def main(index, args):
             if xm.is_master_ordinal():
                 xm.add_step_closure(
                     save_model,
-                    args = (args, model, optimizer, fold, epoch),   
+                    args = (args, model, optimizer, '0', epoch),   
                     run_async= False
                 )
                 
