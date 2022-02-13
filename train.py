@@ -26,9 +26,7 @@ def train_loop(args, writer, model, optimizer, criterion, train_dataloader, epoc
     model.train()
     itr_start_time = time.time()
     n_iters = len(train_dataloader)
-    
-    losses = []
-    
+    #losses = []
     for step, batch in enumerate(train_dataloader, start=1):
         optimizer.zero_grad()
         
@@ -43,23 +41,21 @@ def train_loop(args, writer, model, optimizer, criterion, train_dataloader, epoc
         xm.optimizer_step(optimizer)
         #optimizer.step()
         
-        losses.append(loss.item())
-        
-        if step % args.log_every == 0:
+        if step % args.log_every == 0 and xm.is_master_ordinal():
             elapsed = time.time() - itr_start_time
             xm.add_step_closure(
                 train_logging,      
-                args=(writer,epoch,args.total_epoch,step,n_iters,elapsed, losses),
+                args=(writer,epoch,args.total_epoch,step,n_iters,elapsed, loss.item()),
                 run_async=True
             )
             
-            losses = []
+            #losses = []
             itr_start_time = time.time()
 
 def validation_loop(args, writer, model, criterion,valid_dataloader, epoch):
     model.eval()
     
-    losses = []
+    #losses = []
     correct, total = 0,0
     n_iters = len(valid_dataloader)
     
@@ -72,20 +68,21 @@ def validation_loop(args, writer, model, criterion,valid_dataloader, epoch):
             
             loss = criterion(prediction, label)
             
-            losses.append(loss.item())
+            #losses.append(loss.item())
             
             _, predicted = torch.max(prediction.data, 1)
             total += label.size(0)
             correct += (predicted == label).sum().item()
         
-            xm.add_step_closure(
-                valid_logging,
-                args=(writer, epoch, args.total_epoch, step, n_iters, losses, correct, total),
-                run_async=True
-            )
+            if step % args.log_every == 0 and xm.is_master_ordinal():
+                xm.add_step_closure(
+                    valid_logging,
+                    args=(writer, epoch, args.total_epoch, step, n_iters, loss.item(), correct, total),
+                    run_async=True
+                )
                 
-            losses = []
-            correct, total = 0,0
+                #losses = []
+                correct, total = 0,0
             
 def save_model(args, model, optimizer, fold, epoch):
     dict_for_infer = {
