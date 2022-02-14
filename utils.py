@@ -27,7 +27,7 @@ def valid_logging(writer, epoch,total_epoch,step,n_iters, loss,correct,total):
 		), flush=True
 	)
     
-    if writer:
+    if writer is not None:
         writer.add_scalar('Loss/valid',
 			loss,
             epoch * n_iters + step
@@ -52,7 +52,7 @@ def train_logging(writer, epoch,total_epoch,step,n_iters,elapsed, loss, write_xl
     
     )
     
-    if writer:
+    if writer is not None:
         writer.add_scalar('Loss/train',
 			loss, 
             epoch * n_iters + step

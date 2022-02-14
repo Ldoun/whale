@@ -31,7 +31,7 @@ def train_loop(args, writer, model, optimizer, criterion, train_dataloader, epoc
         optimizer.zero_grad()
         
         image = batch['image']
-        label = batch['label'].squeeze()
+        label = batch['label']
         
         prediction = model(image)
         
@@ -62,7 +62,7 @@ def validation_loop(args, writer, model, criterion,valid_dataloader, epoch):
     with torch.no_grad():
         for step, batch in enumerate(valid_dataloader, start=1):
             image = batch['image']
-            label = batch['label'].squeeze()
+            label = batch['label']
             
             prediction = model(image)
             
@@ -99,7 +99,8 @@ def save_model(args, model, optimizer, fold, epoch):
     save_dir = os.path.join(args.ckt_folder, f"{args.model_name}-checkpoint_{fold}fold_{epoch}epoch")
     
     xm.save(dict_for_infer, save_dir)
-
+    print('saved')
+    
     '''with open(os.path.join(args.ckt_folder, "dict_for_infer"), "wb") as f:
         pickle.dump(dict_for_infer, f)
 
@@ -201,10 +202,9 @@ def main(index, args):
                     xm.add_step_closure(
                         save_model,
                         args = (args, model, optimizer, fold, epoch),   
-                        run_async= False
+                        run_async = True
                     )
                     
-                    print('saved')
                        
         test_utils.close_summary_writer(writer)
                 

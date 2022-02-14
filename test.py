@@ -95,6 +95,8 @@ def save_model(args, model, optimizer, fold, epoch):
     save_dir = os.path.join(args.ckt_folder, f"{args.model_name}-checkpoint_5_5_{epoch}epoch")
     
     xm.save(dict_for_infer, save_dir)
+    
+    print('saved')
 
     '''with open(os.path.join(args.ckt_folder, "dict_for_infer"), "wb") as f:
         pickle.dump(dict_for_infer, f)
@@ -180,10 +182,9 @@ def main(index, args):
                 xm.add_step_closure(
                     save_model,
                     args = (args, model, optimizer, '0', epoch),   
-                    run_async= False
+                    run_async= True
                 )
                 
-                print('saved')
                     
     test_utils.close_summary_writer(writer)
                 
