@@ -4,7 +4,11 @@
 
     "arch": {
         "type": "MnistModel",
-        "args": {}
+        "args": {
+            "base_model": "efficientnet_b0",
+            "ouput_dim": 15587,
+            "drop_p": 0.1
+        }
     },
     "data_loader": {
         "type": "MnistDataLoader",
