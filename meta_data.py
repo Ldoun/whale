@@ -1,6 +1,6 @@
 import pandas as pd
 
-data = pd.read_csv('eda/train.csv')
+data = pd.read_csv('train.csv')
 unique = list(set(data['individual_id']))
 
 label_encoder = {}
