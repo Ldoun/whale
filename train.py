@@ -21,6 +21,7 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(SEED)
 
 def main(index, config):
+    config.init_logger()
     logger = config.get_logger('train')
 
     # setup data_loader instances
