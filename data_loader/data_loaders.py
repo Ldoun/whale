@@ -34,7 +34,6 @@ class ImageDataset(BaseDataLoader):
         num_workers=1,
     ):
         
-        super().__init__(self,batch_size, shuffle, validation_split, num_workers)
         self.path = data_dir
         self.data = dataframe.copy()
         self.mode = mode
@@ -77,6 +76,7 @@ class ImageDataset(BaseDataLoader):
                         p=1.0
                     ),
                 ToTensorV2()], p=1.)
+        super().__init__(self,batch_size, shuffle, validation_split, num_workers)
             
                     
     def __len__(self):
