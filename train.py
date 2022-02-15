@@ -45,7 +45,8 @@ def main(index, config):
     #criterion = getattr(module_loss, config['loss'])
     criterion = config.init_obj('loss', module_loss)
     metrics = [getattr(module_metric, met) for met in config['metrics']]
-
+    config['optimizer']['args']['lr'] = config['optimizer']['args']['lr'] *  xm.xrt_world_size()
+    
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = config.init_obj('optimizer', torch.optim, trainable_params)
