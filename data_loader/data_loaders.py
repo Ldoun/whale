@@ -5,6 +5,7 @@ import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from torchvision import datasets, transforms
+from torch.utils.data import Dataset
 from base import BaseDataLoader
 from meta_data import label_encoder
 
@@ -30,7 +31,7 @@ class ImageDataloader(BaseDataLoader):
 
 
 
-class ImageDataset(BaseDataLoader):
+class ImageDataset(Dataset):
     def __init__(
         self,
         data_dir,
