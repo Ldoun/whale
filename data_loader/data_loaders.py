@@ -21,19 +21,24 @@ class MnistDataLoader(BaseDataLoader):
         self.dataset = datasets.MNIST(self.data_dir, train=training, download=True, transform=trsfm)
         super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
 
+
+
+class ImageDataloader(BaseDataLoader):
+    def __init__(self, data_dir, dataframe, image_size, batch_size, mode = 'train', shuffle=True, validation_split=0.0, num_workers=1):
+        self.dataset = ImageDataset(data_dir, dataframe, image_size, mode)
+        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
+
+
+
 class ImageDataset(BaseDataLoader):
     def __init__(
         self,
         data_dir,
-        batch_size, 
         dataframe,
         image_size,
-        validation_split=0.0,
         mode = 'train',
-        shuffle=True,
-        num_workers=1,
     ):
-        
+        super().__init__()
         self.path = data_dir
         self.data = dataframe.copy()
         self.mode = mode
@@ -76,7 +81,7 @@ class ImageDataset(BaseDataLoader):
                         p=1.0
                     ),
                 ToTensorV2()], p=1.)
-        super().__init__(self,batch_size, shuffle, validation_split, num_workers)
+        
             
                     
     def __len__(self):

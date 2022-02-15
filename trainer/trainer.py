@@ -58,7 +58,7 @@ class Trainer(BaseTrainer):
 
             if batch_idx % self.log_step == 0 and xm.is_master_ordinal():
                 elapsed = time.time() - start
-                self.logger.debug('Train Epoch: {} {} step_time:{0:03d}s Loss: {:.6f}'.format(
+                self.logger.debug('Train Epoch: {} {} step_time:{:.6f}s Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
                     elapsed,
@@ -100,8 +100,9 @@ class Trainer(BaseTrainer):
                     self.writer.add_image('input', make_grid(batch['image'].cpu(), nrow=8, normalize=True))
 
         # add histogram of model parameters to the tensorboard
-        for name, p in self.model.named_parameters() and self.writer is not None:
-            self.writer.add_histogram(name, p, bins='auto')
+        if self.writer is not None:
+            for name, p in self.model.named_parameters():
+                self.writer.add_histogram(name, p, bins='auto')
         return self.valid_metrics.result()
 
     def _progress(self, batch_idx):

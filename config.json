@@ -12,7 +12,7 @@
         }
     },
     "data_loader": {
-        "type": "ImageDataset",
+        "type": "ImageDataloader",
         "args":{
             "data_dir": "../train_data",
             "batch_size": 128,
