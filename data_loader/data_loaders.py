@@ -96,5 +96,5 @@ class ImageDataset(Dataset):
         image = self.transforms(image=image)["image"]
         label = torch.tensor(label)
         
-        return {'image':image, 'label':label}
+        return image, label
     
