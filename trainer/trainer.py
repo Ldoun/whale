@@ -51,7 +51,8 @@ class Trainer(BaseTrainer):
             loss.backward()
             xm.optimizer_step(self.optimizer)
 
-            self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
+            if self.writer is not None:
+                self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update('loss', loss.item()) #tpu lazy need to call item per nstep
             for met in self.metric_ftns:
                 self.train_metrics.update(met.__name__, met(output, target))
@@ -91,15 +92,17 @@ class Trainer(BaseTrainer):
                 output = self.model(data)
                 loss = self.criterion(output, target)
 
-                self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
                 self.valid_metrics.update('loss', loss.item())
                 for met in self.metric_ftns:
                     self.valid_metrics.update(met.__name__, met(output, target))
-                self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                if self.writer is not None:
+                    self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
+                    self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
 
         # add histogram of model parameters to the tensorboard
-        for name, p in self.model.named_parameters():
-            self.writer.add_histogram(name, p, bins='auto')
+        if self.writer is not None:
+            for name, p in self.model.named_parameters():
+                self.writer.add_histogram(name, p, bins='auto')
         return self.valid_metrics.result()
 
     def _progress(self, batch_idx):
