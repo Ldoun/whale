@@ -25,12 +25,16 @@ class ImageDataset(BaseDataLoader):
     def __init__(
         self,
         data_dir,
+        batch_size, 
         dataframe,
         image_size,
+        validation_split=0.0,
         mode = 'train',
+        shuffle=True,
+        num_workers=1,
     ):
         
-        super().__init__()
+        super().__init__(self,batch_size, shuffle, validation_split, num_workers)
         self.path = data_dir
         self.data = dataframe.copy()
         self.mode = mode
