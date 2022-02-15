@@ -49,7 +49,7 @@ class Trainer(BaseTrainer):
             output = self.model(data)
             loss = self.criterion(output, target)
             loss.backward()
-            xm.optimizer_step(self.optimizer.step())
+            xm.optimizer_step(self.optimizer)
 
             self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update('loss', loss.item()) #tpu lazy need to call item per nstep
