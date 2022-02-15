@@ -1,19 +1,25 @@
 {
     "name": "Mnist_LeNet",
     "nprocs": 8,
+    "csv": "train.csv",
 
     "arch": {
-        "type": "MnistModel",
-        "args": {}
+        "type": "efficientnet_base",
+        "args": {
+            "base_model": "efficientnet_b0",
+            "ouput_dim": 15587,
+            "drop_p": 0.1
+        }
     },
     "data_loader": {
-        "type": "MnistDataLoader",
+        "type": "ImageDataset",
         "args":{
             "data_dir": "data/",
             "batch_size": 128,
             "shuffle": true,
-            "validation_split": 0.1,
-            "num_workers": 2
+            "validation_split": 0.0,
+            "num_workers": 2,
+            "image_size": 448
         }
     },
     "optimizer": {
@@ -24,7 +30,7 @@
             "amsgrad": true
         }
     },
-    "loss": "nll_loss",
+    "loss": "FocalLoss",
     "metrics": [
         "accuracy", "top_k_acc"
     ],
