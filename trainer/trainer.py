@@ -58,7 +58,7 @@ class Trainer(BaseTrainer):
 
             if batch_idx % self.log_step == 0 and xm.is_master_ordinal():
                 elapsed = time.time() - start
-                self.logger.debug('Train Epoch: {} {} step_time:%ds Loss: {:.6f}'.format(
+                self.logger.debug('Train Epoch: {} {} step_time:{0:03d}s Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
                     elapsed,
@@ -106,10 +106,10 @@ class Trainer(BaseTrainer):
 
     def _progress(self, batch_idx):
         base = '[{}/{} ({:.0f}%)]'
-        if hasattr(self.data_loader, 'n_samples'):#iteration mode
+        '''if hasattr(self.data_loader, 'n_samples'):#iteration mode
             current = batch_idx * self.config['data_loader']['args']['batch_size']
             total = self.n_samples
-        else:
-            current = batch_idx
-            total = self.len_epoch
+        else:'''
+        current = batch_idx
+        total = self.len_epoch
         return base.format(current, total, 100.0 * current / total)
