@@ -11,7 +11,8 @@ import model.metric as module_metric
 import model.model as module_arch
 from parse_config import ConfigParser
 from trainer import Trainer
-
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 # fix random seeds for reproducibility
 SEED = 123
@@ -22,11 +23,15 @@ np.random.seed(SEED)
 
 def main(index, config):
     config.init_logger()
+    
+    data = pd.read_csv('./test.csv')
     logger = config.get_logger('train')
 
+    train_data, valid_data = train_test_split(data, test_size=0.2)
+
     # setup data_loader instances
-    data_loader = config.init_obj('data_loader', module_data)
-    valid_data_loader = data_loader.split_validation()
+    data_loader = config.init_obj('data_loader', module_data, mode = 'train', dataframe = train_data)
+    valid_data_loader = config.init_obj('data_loader', module_data, mode = 'valid', dataframe = valid_data)
 
     # build model architecture, then print to console
     model = config.init_obj('arch', module_arch)

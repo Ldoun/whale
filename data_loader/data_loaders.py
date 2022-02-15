@@ -8,6 +8,7 @@ from albumentations.pytorch import ToTensorV2
 from torchvision import datasets, transforms
 from torch.utils.data import Dataset
 from base import BaseDataLoader
+from meta_data import label_encoder
 
 class MnistDataLoader(BaseDataLoader):
     """
@@ -21,22 +22,24 @@ class MnistDataLoader(BaseDataLoader):
         self.data_dir = data_dir
         self.dataset = ImageDataset(self.data_dir)
         super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
+        
+class ImageDataloader(BaseDataLoader):
+    def __init__(self, data_dir, dataframe, image_size, batch_size, mode = 'train', shuffle=True, validation_split=0.0, num_workers=1):
+        self.dataset = ImageDataset(data_dir, dataframe, image_size, mode)
+        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
 
 class ImageDataset(Dataset):
     def __init__(
         self,
         data_dir,
-        mode='valid'
+        dataframe,
+        image_size,
+        mode = 'train',
     ):
         super().__init__()
         self.path = data_dir
-        self.data = pd.read_csv('./test.csv')
+        self.data = dataframe.copy()
         self.mode = mode
-        unique = list(set(self.data['individual_id']))
-
-        label_encoder = {}
-        for i, value in enumerate(unique):
-            label_encoder[value] = i
         self.label_encoder = label_encoder
         
         if self.mode == 'train':
@@ -49,7 +52,7 @@ class ImageDataset(Dataset):
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])'''
             self.transforms = A.Compose([
-                A.Resize(448, 448),
+                A.Resize(image_size, image_size),
                 A.HorizontalFlip(p=0.5),
                 A.VerticalFlip(p=0.5),
                 A.Rotate(limit=30, p=0.5),
@@ -68,7 +71,7 @@ class ImageDataset(Dataset):
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])'''
             self.transforms = A.Compose([
-                A.Resize(448, 448),
+                A.Resize(image_size, image_size),
                 A.Normalize(
                         mean=[0.485, 0.456, 0.406], 
                         std=[0.229, 0.224, 0.225], 
