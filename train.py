@@ -1,235 +1,76 @@
 import argparse
-import pandas as pd
-import time
-import numpy as np
-import os
-import pickle
-
+import collections
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-import torch_xla
 import torch_xla.core.xla_model as xm
 import torch_xla.distributed.parallel_loader as pl
 import torch_xla.distributed.xla_multiprocessing as xmp
-import torch_xla.test.test_utils as test_utils
-from tensorboardX import SummaryWriter
-from sklearn.model_selection import KFold, StratifiedKFold
+import numpy as np
+import data_loader.data_loaders as module_data
+import model.loss as module_loss
+import model.metric as module_metric
+import model.model as module_arch
+from parse_config import ConfigParser
+from trainer import Trainer
+from utils import prepare_device
 
-from models.efficientnet import efficientnet_base
-from dataloader import ImageDataset
-from utils import *
-from loss import FocalLoss
 
-def train_loop(args, writer, model, optimizer, criterion, train_dataloader, epoch):
-    model.train()
-    itr_start_time = time.time()
-    n_iters = len(train_dataloader)
-    #losses = []
-    for step, batch in enumerate(train_dataloader, start=1):
-        optimizer.zero_grad()
-        
-        image = batch['image']
-        label = batch['label']
-        
-        prediction = model(image)
-        
-        loss = criterion(prediction, label)
-        loss.backward()
-        
-        xm.optimizer_step(optimizer)
-        #optimizer.step()
-        
-        if step % args.log_every == 0 and xm.is_master_ordinal():
-            elapsed = time.time() - itr_start_time
-            xm.add_step_closure(
-                train_logging,      
-                args=(writer,epoch,args.total_epoch,step,n_iters,elapsed, loss.item()),
-                run_async=True
-            )
-            
-            #losses = []
-            itr_start_time = time.time()
+# fix random seeds for reproducibility
+SEED = 123
+torch.manual_seed(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+np.random.seed(SEED)
 
-def validation_loop(args, writer, model, criterion,valid_dataloader, epoch):
-    model.eval()
-    
-    #losses = []
-    correct, total = 0,0
-    n_iters = len(valid_dataloader)
-    
-    with torch.no_grad():
-        for step, batch in enumerate(valid_dataloader, start=1):
-            image = batch['image']
-            label = batch['label']
-            
-            prediction = model(image)
-            
-            loss = criterion(prediction, label)
-            
-            #losses.append(loss.item())
-            
-            _, predicted = torch.max(prediction.data, 1)
-            total += label.size(0)
-            correct += (predicted == label).sum().item()
-        
-            if step % args.log_every == 0 and xm.is_master_ordinal():
-                xm.add_step_closure(
-                    valid_logging,
-                    args=(writer, epoch, args.total_epoch, step, n_iters, loss.item(), correct, total),
-                    run_async=True
-                )
-                
-                #losses = []
-                correct, total = 0,0
-            
-def save_model(args, model, optimizer, fold, epoch):
-    dict_for_infer = {
-        "model": model.state_dict(),
-        "opt": optimizer.state_dict(),
-        #"scaler": scheduler.state_dict(),
-        #"amp": amp.state_dict(),
-        "batch_size": args.batch_size,
-        "epochs": args.total_epoch,
-        "learning_rate": args.lr,
-    }
-    
-    os.makedirs(args.ckt_folder, exist_ok=True)
-    save_dir = os.path.join(args.ckt_folder, f"{args.model_name}-checkpoint_{fold}fold_{epoch}epoch")
-    
-    xm.save(dict_for_infer, save_dir)
-    print('saved')
-    
-    '''with open(os.path.join(args.ckt_folder, "dict_for_infer"), "wb") as f:
-        pickle.dump(dict_for_infer, f)
+def main(config):
+    logger = config.get_logger('train')
 
-    print("save complete")'''
+    # setup data_loader instances
+    data_loader = config.init_obj('data_loader', module_data)
+    valid_data_loader = data_loader.split_validation()
 
-    
-def main(index, args):    
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    #torch.cuda.manual_seed(args.seed)
-    #device = torch.device(f"cuda:0" if torch.cuda.is_available() else "cpu")
+    # build model architecture, then print to console
+    model = config.init_obj('arch', module_arch)
+    logger.info(model)
+
+    # prepare for (multi-device) TPU training
     device = xm.xla_device()
+    model = model.to(device)
     
-    data = pd.read_csv(args.train_csv)
-    label = data['species'].values  # try with individual_id
-    kfold = StratifiedKFold(n_splits=args.n_fold, shuffle=True)
-    
-    if args.reload_epoch_from:
-        print(f'starting from {args.reload_folder_from} folder, {args.reload_epoch_from} epoch {args.reload_model_from} model')
-    
-    for fold, (train_ids, valid_ids) in enumerate(kfold.split(data,label)):     
-        
-        if args.reload_folder_from > fold:
-            continue
-            
-        writer = None
-        if xm.is_master_ordinal():
-            writer = test_utils.get_summary_writer(f'runs/{args.model_name}-{fold}fold')
-            
-            print(f'FOLD {fold}')
-            print('--------------------------------')
+    # get function handles of loss and metrics
+    criterion = getattr(module_loss, config['loss'])
+    metrics = [getattr(module_metric, met) for met in config['metrics']]
 
-        train_dataset = ImageDataset(args.img_folder, data.iloc[train_ids], 448, mode = 'train')        
-        valid_dataset = ImageDataset(args.img_folder, data.iloc[valid_ids], 448, mode = 'valid')
-        
-        train_sampler = torch.utils.data.distributed.DistributedSampler(
-            train_dataset,
-            num_replicas=xm.xrt_world_size(),
-            rank=xm.get_ordinal(),
-            shuffle=True
-        )
-    
-        valid_sampler = torch.utils.data.distributed.DistributedSampler(
-            valid_dataset,
-            num_replicas=xm.xrt_world_size(),
-            rank=xm.get_ordinal(),
-            shuffle=False
-        )
-        
-        train_dataloader = pl.MpDeviceLoader(
-            DataLoader(
-                train_dataset,
-                batch_size=args.batch_size,
-                num_workers=10,
-                sampler=train_sampler,
-                pin_memory=True,
-                drop_last=True,
-            ), device
-        )
-        
-        valid_dataloader = pl.MpDeviceLoader(
-            DataLoader(
-                valid_dataset,
-                batch_size=args.batch_size,
-                num_workers=10,
-                sampler=valid_sampler,
-                pin_memory=True,
-                shuffle=False,
-                drop_last=True,
-            ), device
-        )
-        
-        model = efficientnet_base(base_model=args.model,ouput_dim=15587)
-        model.apply(reset_weights)
-        model.to(device)
-        
-        lr = args.lr * xm.xrt_world_size()
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        criterion = FocalLoss()
-        
-        start_epoch = 0
-        if fold == args.reload_folder_from and args.reload_epoch_from:
-            if args.reload_model_from == "":
-                raise('need model file name')
-            
-            print('loading model')
-            start_epoch = args.reload_epoch_from
-            save_dir = os.path.join(args.ckt_folder, args.reload_model_from)
-            checkpoint = torch.load(save_dir)
-            optimizer.load_state_dict(checkpoint['opt'])
-            model.load_state_dict(checkpoint['model'])
-            
+    # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
+    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
+    optimizer = config.init_obj('optimizer', torch.optim, trainable_params)
+    lr_scheduler = config.init_obj('lr_scheduler', torch.optim.lr_scheduler, optimizer)
 
-        for epoch in range(start_epoch, args.total_epoch + 1):
-            train_loop(args, writer, model, optimizer, criterion, train_dataloader, epoch)
-            validation_loop(args, writer, model, criterion, valid_dataloader, epoch)          
-            if epoch % args.save_every == 0:
-                if xm.is_master_ordinal():
-                    xm.add_step_closure(
-                        save_model,
-                        args = (args, model, optimizer, fold, epoch),   
-                        run_async = True
-                    )
-                    
-                       
-        test_utils.close_summary_writer(writer)
-                
+    #loads the training data onto each tpu
+    data_loader = pl.MpDeviceLoader(data_loader,device)
+    valid_data_loader = pl.MpDeviceLoader(valid_data_loader,device)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", type=int, default=40)
-    parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--fp16", action="store_true")
-    parser.add_argument("--total_epoch", type=int, default=40)
-    parser.add_argument("--warmup_step", type=int, default=2000)
-    parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--n_fold", type=int, default=5)
-    parser.add_argument("--log_every", type=int, default=1)
-    #parser.add_argument("--valid_every", type=int, default=10000)
-    parser.add_argument("--save_every", type=int, default=5)
-    parser.add_argument("--ckt_folder", type=str, default="./")
-    parser.add_argument("--img_folder", type=str, default="./")
-    parser.add_argument("--train_csv", type=str, default="./train.csv")
-    parser.add_argument("--reload_epoch_from", type=int, default=0)
-    parser.add_argument("--reload_folder_from", type=int, default=0)
-    parser.add_argument("--reload_model_from", type=str, default='') 
-    parser.add_argument("--model",type=str,default='',required=True)
-    parser.add_argument("--model_name",type=str,default='',required=True)
+    trainer = Trainer(model, criterion, metrics, optimizer,
+                      config=config,
+                      device=device,
+                      data_loader=data_loader,
+                      valid_data_loader=valid_data_loader,
+                      lr_scheduler=lr_scheduler)
 
-    args = parser.parse_args()
+    trainer.train()
 
-    xmp.spawn(main, args=(args,))
+
+if __name__ == '__main__':
+    args = argparse.ArgumentParser(description='PyTorch Template')
+    args.add_argument('-c', '--config', default=None, type=str,
+                      help='config file path (default: None)')
+    args.add_argument('-r', '--resume', default=None, type=str,
+                      help='path to latest checkpoint (default: None)')
+
+    # custom cli options to modify configuration from default values given in json file.
+    CustomArgs = collections.namedtuple('CustomArgs', 'flags type target')
+    options = [
+        CustomArgs(['--lr', '--learning_rate'], type=float, target='optimizer;args;lr'),
+        CustomArgs(['--bs', '--batch_size'], type=int, target='data_loader;args;batch_size')
+    ]
+    config = ConfigParser.from_args(args, options)
+    xmp.spawn(main, args=(config,))
