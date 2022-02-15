@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import time
 import torch_xla.core.xla_model as xm
 from torchvision.utils import make_grid
 from base import BaseTrainer
@@ -42,6 +43,7 @@ class Trainer(BaseTrainer):
         """
         self.model.train()
         self.train_metrics.reset()
+        start = time.time()
         for batch_idx, batch in enumerate(self.data_loader):
             self.optimizer.zero_grad()
             output = self.model(batch['image'])
@@ -55,9 +57,11 @@ class Trainer(BaseTrainer):
                 self.train_metrics.update(met.__name__, met(output, batch['label']))
 
             if batch_idx % self.log_step == 0 and xm.is_master_ordinal():
-                self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
+                elapsed = time.time() - start
+                self.logger.debug('Train Epoch: {} {} step_time:%ds Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
+                    elapsed,
                     loss.item()))
                 self.writer.add_image('input', make_grid(batch['image'].cpu(), nrow=8, normalize=True))
 
