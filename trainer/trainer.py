@@ -15,7 +15,9 @@ class Trainer(BaseTrainer):
         super().__init__(model, criterion, metric_ftns, optimizer, config)
         self.config = config
         self.device = device
+        self.n_samples = len(data_loader)
         self.data_loader = data_loader
+        
         if len_epoch is None:
             # epoch-based training
             self.len_epoch = len(self.data_loader)
@@ -26,7 +28,7 @@ class Trainer(BaseTrainer):
         self.valid_data_loader = valid_data_loader
         self.do_validation = self.valid_data_loader is not None
         self.lr_scheduler = lr_scheduler
-        self.log_step = int(np.sqrt(data_loader.batch_size))
+        self.log_step = int(np.sqrt(config.batch_size))
 
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
@@ -41,7 +43,7 @@ class Trainer(BaseTrainer):
         self.model.train()
         self.train_metrics.reset()
         for batch_idx, (data, target) in enumerate(self.data_loader):
-            data, target = data.to(self.device), target.to(self.device)
+            data, target = data, target
 
             self.optimizer.zero_grad()
             output = self.model(data)
@@ -84,7 +86,7 @@ class Trainer(BaseTrainer):
         self.valid_metrics.reset()
         with torch.no_grad():
             for batch_idx, (data, target) in enumerate(self.valid_data_loader):
-                data, target = data.to(self.device), target.to(self.device)
+                data, target = data, target
 
                 output = self.model(data)
                 loss = self.criterion(output, target)
@@ -102,9 +104,9 @@ class Trainer(BaseTrainer):
 
     def _progress(self, batch_idx):
         base = '[{}/{} ({:.0f}%)]'
-        if hasattr(self.data_loader, 'n_samples'):
-            current = batch_idx * self.data_loader.batch_size
-            total = self.data_loader.n_samples
+        if hasattr(self.data_loader, 'n_samples'):#iteration mode
+            current = batch_idx * self.config.batch_size
+            total = self.n_samples
         else:
             current = batch_idx
             total = self.len_epoch
