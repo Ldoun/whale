@@ -20,7 +20,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(SEED)
 
-def main(config):
+def main(index, config):
     logger = config.get_logger('train')
 
     # setup data_loader instances
