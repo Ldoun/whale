@@ -120,7 +120,7 @@ class ConfigParser:
         logger = logging.getLogger(name)
         logger.setLevel(self.log_levels[verbosity])
         if not xm.is_master_ordinal():
-            logger.handlers = []
+            logger.propagate = False
         return logger
 
     # setting read-only attributes
