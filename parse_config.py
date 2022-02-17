@@ -6,6 +6,7 @@ from operator import getitem
 from datetime import datetime
 from logger import setup_logging
 from utils import read_json, write_json
+import torch_xla.core.xla_model as xm
 
 
 class ConfigParser:
@@ -118,6 +119,8 @@ class ConfigParser:
         assert verbosity in self.log_levels, msg_verbosity
         logger = logging.getLogger(name)
         logger.setLevel(self.log_levels[verbosity])
+        if not xm.is_master_ordinal():
+            logger.handlers = []
         return logger
 
     # setting read-only attributes
