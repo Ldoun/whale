@@ -110,7 +110,3 @@ datasets/
 .vscode/
 .idea/
 __MACOSX/
-before/test_with_mnist.py
-eda/image_size
-*.ipynb
-*.ipynb

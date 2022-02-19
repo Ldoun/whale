@@ -1,1 +1,0 @@
-# kaggle_happy_whale

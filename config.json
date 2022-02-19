@@ -4,23 +4,22 @@
     "csv": "train.csv",
 
     "arch": {
-        "type": "efficientnet_base",
-        "args": {
-            "base_model": "efficientnet_b0",
-            "ouput_dim": 15587,
-            "drop_p": 0.1
+        "type": "MnistModel",
+        "args": {}
+    },
+    "dataset": {
+        "type": "MnistDataLoader",
+        "args":{
+            "data_dir": "data/",
+            "image_size": 448
         }
     },
     "data_loader": {
-        "type": "ImageDataloader",
-        "args":{
-            "data_dir": "../train_data",
-            "batch_size": 128,
-            "shuffle": true,
-            "validation_split": 0.0,
-            "num_workers": 10,
-            "image_size": 448
-        }
+        "batch_size": 128,
+        "shuffle": true,
+        "num_workers": 2,
+        "pin_memory": true,
+        "drop_last": true
     },
     "optimizer": {
         "type": "Adam",
@@ -30,15 +29,7 @@
             "amsgrad": true
         }
     },
-    "loss": {
-        "type": "FocalLoss",
-        "args":{
-            "alpha": 1, 
-            "gamma": 2, 
-            "reduction": "mean", 
-            "ignore_index": -100
-        }
-    },
+    "loss": "nll_loss",
     "metrics": [
         "accuracy", "top_k_acc"
     ],

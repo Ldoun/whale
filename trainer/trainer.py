@@ -29,6 +29,19 @@ class Trainer(BaseTrainer):
         self.log_step = int(np.sqrt(config['data_loader']['args']['batch_size']))
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
+        
+    def _compute_loss(self, image1, image2):
+        image1_feature, image2_feature, logit_scale = self.model(image1,image2)
+        logit_scale = logit_scale.mean()
+        
+        gatered_image1_featuture = xm.all_gather(image1_feature)
+        gatered_image2_featuture = xm.all_gather(image2_feature)
+        
+        logits_per_image = logit_scale * gatered_image1_featuture @ gatered_image2_featuture.t()
+        ground_truth = torch.arange(len(logits_per_image)).long().to(self.device)
+        loss = self.criterion(logits_per_image, ground_truth)
+        return loss
+        
     def _train_epoch(self, epoch):
         """
         Training logic for an epoch
