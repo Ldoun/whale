@@ -7,7 +7,7 @@
         "type": "ClipImageEncoer",
         "args": {
             "embed_dim": 1024,
-            "image_resolution": 224,
+            "image_resolution": 448,
             "vision_layers": [
                 3,
                 4,
