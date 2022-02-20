@@ -6,7 +6,6 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import torch_xla.core.xla_model as xm
 from torchvision import transforms
-from meta_data import label_encoder
 import numpy as np
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -25,7 +24,6 @@ class ImageDataset(Dataset):
         self.data_dir = data_dir
         self.data = dataframe.copy()
         self.mode = mode
-        self.label_encoder = label_encoder
         
         if self.mode == 'train':
             '''self.transforms = transforms.Compose([
@@ -70,14 +68,14 @@ class ImageDataset(Dataset):
         return len(self.data)
     
     def __getitem__(self, idx):
-        image = np.array(Image.open(os.path.join(self.data_dir,self.data.iloc[idx]['image'])).convert('RGB'))
-        label = self.label_encoder[self.data.iloc[idx]['individual_id']]
+        image1 = np.array(Image.open(os.path.join(self.data_dir,self.data.iloc[idx]['image1'])).convert('RGB'))
+        image2 = np.array(Image.open(os.path.join(self.data_dir,self.data.iloc[idx]['image2'])).convert('RGB'))
         
         #image = self.transforms(image)
-        image = self.transforms(image=image)["image"]
-        label = torch.tensor(label)
+        image1 = self.transforms(image=image1)["image"]
+        image2 = self.transforms(image=image2)["image"]
         
-        return image, label
+        return image1, image2
     
     
 def get_data_loaders(train_dataset, valid_dataset, config):
