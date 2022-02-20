@@ -1,5 +1,5 @@
 {
-    "name": "RN50.json",
+    "name": "RN50",
     "nprocs": 8,
     "csv": "eda/image_combination.csv",
 
