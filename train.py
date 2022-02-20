@@ -78,7 +78,8 @@ if __name__ == '__main__':
     CustomArgs = collections.namedtuple('CustomArgs', 'flags type target')
     options = [
         CustomArgs(['--lr', '--learning_rate'], type=float, target='optimizer;args;lr'),
-        CustomArgs(['--bs', '--batch_size'], type=int, target='data_loader;batch_size')
+        CustomArgs(['--bs', '--batch_size'], type=int, target='data_loader;batch_size'),
+        CustomArgs(['--log_step'], type=int, target='trainer;log_step')
     ]
     config = ConfigParser.from_args(args, options)
     xmp.spawn(main, args=(config,), nprocs=config["nprocs"])   
