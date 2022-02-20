@@ -1,7 +1,7 @@
 {
     "name": "RN50.json",
     "nprocs": 8,
-    "csv": "train.csv",
+    "csv": "eda/image_combination.csv",
 
     "arch": {
         "type": "ClipImageEncoer",
