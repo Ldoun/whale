@@ -26,7 +26,7 @@ class Trainer(BaseTrainer):
         self.valid_data_loader = valid_data_loader
         self.do_validation = self.valid_data_loader is not None
         self.lr_scheduler = lr_scheduler
-        self.log_step = int(np.sqrt(config['data_loader']['args']['batch_size']))
+        self.log_step = int(np.sqrt(config['data_loader']['batch_size']))
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         
@@ -103,7 +103,7 @@ class Trainer(BaseTrainer):
     def _progress(self, batch_idx):
         base = '[{}/{} ({:.0f}%)]'
         if hasattr(self.data_loader, 'n_samples'):#iteration mode
-            current = batch_idx * self.config['data_loader']['args']['batch_size']
+            current = batch_idx * self.config['data_loader']['batch_size']
             total = self.n_samples
         else:
             current = batch_idx
