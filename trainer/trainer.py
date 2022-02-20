@@ -43,7 +43,7 @@ class Trainer(BaseTrainer):
         logits_per_image = logit_scale * gatered_image1_featuture @ gatered_image2_featuture.t()
         ground_truth = torch.arange(len(logits_per_image)).long().to(self.device)
         loss = self.criterion(logits_per_image, ground_truth)
-        return loss, logits_per_image[rank*bs:(rank+1)*bs, rank*bs:(rank+1)*bs], ground_truth[:(rank+1)*bs]
+        return loss, logits_per_image[rank*bs:(rank+1)*bs, rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
         
     def _train_epoch(self, epoch):
         """
