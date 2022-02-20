@@ -60,17 +60,18 @@ class Trainer(BaseTrainer):
             xm.optimizer_step(self.optimizer)
         
             if batch_idx % self.log_step == 0 and xm.is_master_ordinal():
+                float_loss = loss.item()
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
-                    loss.item()))
+                    float_loss))
                 #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
                 
                 if self.writer is not None:
                     self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
-                self.train_metrics.update('loss', loss.item()) #tpu lazy need to call item per nstep
+                self.train_metrics.update('loss', float_loss) #tpu lazy need to call item per nstep
                 for met in self.metric_ftns:
-                    self.train_metrics.update(met.__name__, met(logit, ground_truth))
+                    self.train_metrics.update(met.__name__, met(logit[:self.config['data_loader']['batch_size'],:self.config['data_loader']['batch_size']], ground_truth[:self.config['data_loader']['batch_size']]))
                 
             if batch_idx == self.len_epoch:
                 break
