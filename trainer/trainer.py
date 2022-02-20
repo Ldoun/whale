@@ -40,7 +40,7 @@ class Trainer(BaseTrainer):
         logits_per_image = logit_scale * gatered_image1_featuture @ gatered_image2_featuture.t()
         ground_truth = torch.arange(len(logits_per_image)).long().to(self.device)
         loss = self.criterion(logits_per_image, ground_truth)
-        return loss
+        return loss, logits_per_image, ground_truth
         
     def _train_epoch(self, epoch):
         """
@@ -50,24 +50,25 @@ class Trainer(BaseTrainer):
         """
         self.model.train()
         self.train_metrics.reset()
-        for batch_idx, (data, target) in enumerate(self.data_loader):
-            data, target = data, target
+        for batch_idx, (image1, image2) in enumerate(self.data_loader):
             self.optimizer.zero_grad()
-            output = self.model(data)
-            loss = self.criterion(output, target)
+            loss, logit, ground_truth = self._compute_loss(image1, image2)
             loss.backward()
             xm.optimizer_step(self.optimizer)
-            if self.writer is not None:
-                self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
-            self.train_metrics.update('loss', loss.item()) #tpu lazy need to call item per nstep
-            for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(output, target))
+        
             if batch_idx % self.log_step == 0 and xm.is_master_ordinal():
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
                     loss.item()))
-                self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                
+                if self.writer is not None:
+                    self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
+                self.train_metrics.update('loss', loss.item()) #tpu lazy need to call item per nstep
+                for met in self.metric_ftns:
+                    self.train_metrics.update(met.__name__, met(logit, ground_truth))
+                
             if batch_idx == self.len_epoch:
                 break
         log = self.train_metrics.result()
@@ -86,16 +87,14 @@ class Trainer(BaseTrainer):
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
-            for batch_idx, (data, target) in enumerate(self.valid_data_loader):
-                data, target = data, target
-                output = self.model(data)
-                loss = self.criterion(output, target)
+            for batch_idx, (image1, image2) in enumerate(self.valid_data_loader):
+                loss, logit, ground_truth = self._compute_loss(image1, image2)
                 self.valid_metrics.update('loss', loss.item())
                 for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(output, target))
+                    self.valid_metrics.update(met.__name__, met(logit, ground_truth))
                 if self.writer is not None:
                     self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
-                    self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                    #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
         # add histogram of model parameters to the tensorboard
         if self.writer is not None:
             for name, p in self.model.named_parameters():
