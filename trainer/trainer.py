@@ -33,7 +33,7 @@ class Trainer(BaseTrainer):
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         
-    def _compute_loss(self, image1, image2):
+    def _compute_loss(self, image1, image2, rank, bs):
         image1_feature, image2_feature, logit_scale = self.model(image1,image2)
         logit_scale = logit_scale.mean()
         
@@ -43,7 +43,7 @@ class Trainer(BaseTrainer):
         logits_per_image = logit_scale * gatered_image1_featuture @ gatered_image2_featuture.t()
         ground_truth = torch.arange(len(logits_per_image)).long().to(self.device)
         loss = self.criterion(logits_per_image, ground_truth)
-        return loss, logits_per_image, ground_truth
+        return loss, logits_per_image[rank*bs:(rank+1)*bs, rank*bs:(rank+1)*bs], ground_truth[:(rank+1)*bs]
         
     def _train_epoch(self, epoch):
         """
@@ -55,12 +55,12 @@ class Trainer(BaseTrainer):
         self.train_metrics.reset()
         for batch_idx, (image1, image2) in enumerate(self.data_loader):
             self.optimizer.zero_grad()
-            loss, logit, ground_truth = self._compute_loss(image1, image2)
+            loss, logit, ground_truth = self._compute_loss(image1, image2, xm.get_ordinal(), self.config['data_loader']['batch_size'])
             loss.backward()
             xm.optimizer_step(self.optimizer)
         
-            if batch_idx % self.log_step == 0 and xm.is_master_ordinal():
-                float_loss = loss.item()
+            if batch_idx % self.log_step == 0:
+                float_loss = xm.mesh_reduce('loss_tensor_reduce',loss.item(),np.mean)
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
                     epoch,
                     self._progress(batch_idx),
@@ -71,7 +71,8 @@ class Trainer(BaseTrainer):
                     self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.train_metrics.update('loss', float_loss) #tpu lazy need to call item per nstep
                 for met in self.metric_ftns:
-                    self.train_metrics.update(met.__name__, met(logit[:self.config['data_loader']['batch_size'],:self.config['data_loader']['batch_size']], ground_truth[:self.config['data_loader']['batch_size']]))
+                    met_score = xm.mesh_reduce('met_score', met(logit, ground_truth), np.mean)
+                    self.train_metrics.update(met.__name__, met_score)
                 
             if batch_idx == self.len_epoch:
                 break
@@ -92,10 +93,11 @@ class Trainer(BaseTrainer):
         self.valid_metrics.reset()
         with torch.no_grad():
             for batch_idx, (image1, image2) in enumerate(self.valid_data_loader):
-                loss, logit, ground_truth = self._compute_loss(image1, image2)
-                self.valid_metrics.update('loss', loss.item())
+                loss, logit, ground_truth = self._compute_loss(image1, image2, xm.get_ordinal(), self.config['data_loader']['batch_size'])
+                self.valid_metrics.update('loss', xm.mesh_reduce('valid_loss_reduce',loss.item(),np.mean))
                 for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(logit, ground_truth))
+                    met_score = xm.mesh_reduce('valid_met_score', met(logit, ground_truth), np.mean)
+                    self.valid_metrics.update(met.__name__, met_score)
                 if self.writer is not None:
                     self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
                     #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
