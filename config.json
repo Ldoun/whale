@@ -40,7 +40,7 @@
             "amsgrad": true
         }
     },
-    "loss": "nll_loss",
+    "loss": "cross_entropy_Loss",
     "metrics": [
         "accuracy", "top_k_acc"
     ],
