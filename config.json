@@ -21,7 +21,7 @@
     "dataset": {
         "type": "ImageDataset",
         "args":{
-            "data_dir": "data/",
+            "data_dir": "../train_data",
             "image_size": 448
         }
     },
