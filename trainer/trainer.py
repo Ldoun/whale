@@ -68,7 +68,8 @@ class Trainer(BaseTrainer):
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f} Run time {:.2f}'.format(
                     epoch,
                     self._progress(batch_idx),
-                    float_loss))
+                    float_loss,
+                    run_time))
                 #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
                 if self.writer is not None:
                     self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
