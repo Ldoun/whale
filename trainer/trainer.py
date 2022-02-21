@@ -63,7 +63,7 @@ class Trainer(BaseTrainer):
         
             if batch_idx % self.log_step == 0:
                 float_loss = xm.mesh_reduce('loss_tensor_reduce',loss.item(),np.mean)
-                run_time = start - time.time()
+                run_time = time.time() - start
                 start = time.time()
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f} Run time {:.2f}'.format(
                     epoch,
