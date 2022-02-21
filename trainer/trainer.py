@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import torch
 import torch_xla.core.xla_model as xm
 from torchvision.utils import make_grid
@@ -53,6 +54,7 @@ class Trainer(BaseTrainer):
         """
         self.model.train()
         self.train_metrics.reset()
+        start = time.time()
         for batch_idx, (image1, image2) in enumerate(self.data_loader):
             self.optimizer.zero_grad()
             loss, logit, ground_truth = self._compute_loss(image1, image2, xm.get_ordinal(), self.config['data_loader']['batch_size'])
@@ -61,12 +63,13 @@ class Trainer(BaseTrainer):
         
             if batch_idx % self.log_step == 0:
                 float_loss = xm.mesh_reduce('loss_tensor_reduce',loss.item(),np.mean)
-                self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
+                run_time = start - time.time()
+                start = time.time()
+                self.logger.debug('Train Epoch: {} {} Loss: {:.6f} Run time {:.2f}'.format(
                     epoch,
                     self._progress(batch_idx),
                     float_loss))
                 #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
-                
                 if self.writer is not None:
                     self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.train_metrics.update('loss', float_loss) #tpu lazy need to call item per nstep
