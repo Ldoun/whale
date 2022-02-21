@@ -60,6 +60,8 @@ class Trainer(BaseTrainer):
             loss, logit, ground_truth = self._compute_loss(image1, image2, xm.get_ordinal(), self.config['data_loader']['batch_size'])
             loss.backward()
             xm.optimizer_step(self.optimizer)
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step()
         
             if batch_idx % self.log_step == 0:
                 float_loss = xm.mesh_reduce('loss_tensor_reduce',loss.item(),np.mean)
@@ -77,10 +79,7 @@ class Trainer(BaseTrainer):
                 for met in self.metric_ftns:
                     met_score = xm.mesh_reduce('met_score', met(logit, ground_truth), np.mean)
                     self.train_metrics.update(met.__name__, met_score)
-                
-                if self.lr_scheduler is not None:
-                    self.lr_scheduler.step()
-                
+            
             if batch_idx == self.len_epoch:
                 break
         log = self.train_metrics.result()
