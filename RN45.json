@@ -1,18 +1,18 @@
 {
-    "name": "RN50",
+    "name": "RN45",
     "nprocs": 8,
     "csv": "eda/image_combination.csv",
 
     "arch": {
         "type": "ClipImageEncoer",
         "args": {
-            "embed_dim": 1024,
+            "embed_dim": 768,
             "image_resolution": 448,
             "vision_layers": [
+                2,
                 3,
                 4,
-                6,
-                3
+                2
             ],
             "vision_width": 64,
             "vision_patch_size": null
@@ -35,7 +35,7 @@
     "optimizer": {
         "type": "Adam",
         "args":{
-            "lr": 0.001,
+            "lr": 0.1,
             "weight_decay": 0,
             "amsgrad": true
         }
@@ -45,10 +45,15 @@
         "accuracy", "top_k_acc"
     ],
     "lr_scheduler": {
-        "type": "StepLR",
+        "type": "CosineAnnealingWarmupRestarts",
         "args": {
-            "step_size": 50,
-            "gamma": 0.1
+            "first_cycle_steps": 2000,
+            "cycle_mult": 1.0,
+            "max_lr": 0.1,
+            "min_lr": 0.0005,
+            "warmup_steps": 1000,
+            "gamma": 0.8,
+            "last_epoch": -1
         }
     },
     "trainer": {

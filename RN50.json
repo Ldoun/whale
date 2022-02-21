@@ -1,0 +1,72 @@
+{
+    "name": "RN50",
+    "nprocs": 8,
+    "csv": "eda/image_combination.csv",
+
+    "arch": {
+        "type": "ClipImageEncoer",
+        "args": {
+            "embed_dim": 1024,
+            "image_resolution": 448,
+            "vision_layers": [
+                3,
+                4,
+                6,
+                3
+            ],
+            "vision_width": 64,
+            "vision_patch_size": null
+        }
+    },
+    "dataset": {
+        "type": "ImageDataset",
+        "args":{
+            "data_dir": "../train_data",
+            "image_size": 448
+        }
+    },
+    "data_loader": {
+        "batch_size": 128,
+        "shuffle": true,
+        "num_workers": 2,
+        "pin_memory": true,
+        "drop_last": true
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args":{
+            "lr": 0.1,
+            "weight_decay": 0,
+            "amsgrad": true
+        }
+    },
+    "loss": "cross_entropy_Loss",
+    "metrics": [
+        "accuracy", "top_k_acc"
+    ],
+    "lr_scheduler": {
+        "type": "CosineAnnealingWarmupRestarts",
+        "args": {
+            "first_cycle_steps": 2000,
+            "cycle_mult": 1.0,
+            "max_lr": 0.1,
+            "min_lr": 0.0005,
+            "warmup_steps": 1000,
+            "gamma": 0.8,
+            "last_epoch": -1
+        }
+    },
+    "trainer": {
+        "epochs": 100,
+
+        "save_dir": "saved/",
+        "save_period": 1,
+        "verbosity": 2,
+        "log_step": null,
+        
+        "monitor": "min val_loss",
+        "early_stop": 10,
+
+        "tensorboard": true
+    }
+}
