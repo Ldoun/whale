@@ -11,7 +11,7 @@ class Trainer(BaseTrainer):
     """
     def __init__(self, model, criterion, metric_ftns, optimizer, config, device,
                  data_loader, valid_data_loader=None, lr_scheduler=None, len_epoch=None):
-        super().__init__(model, criterion, metric_ftns, optimizer, config)
+        super().__init__(model, criterion, metric_ftns, optimizer, lr_scheduler, config)
         self.config = config
         self.device = device
         self.n_samples = len(data_loader)
@@ -26,7 +26,6 @@ class Trainer(BaseTrainer):
             self.len_epoch = len_epoch
         self.valid_data_loader = valid_data_loader
         self.do_validation = self.valid_data_loader is not None
-        self.lr_scheduler = lr_scheduler
         if config['trainer']['log_step']:
             self.log_step = config['trainer']['log_step']
         else:
