@@ -156,7 +156,7 @@ class BaseTrainer:
             self.optimizer.load_state_dict(checkpoint['optimizer'])
             
         # load scheduler state from checkpoint only when scheduler is not changed.
-        if checkpoint['config']['scheduler']['type'] != self.config['scheduler']['type']:
+        if checkpoint['config']['lr_scheduler']['type'] != self.config['lr_scheduler']['type']:
             self.logger.warning("Warning: Optimizer type given in config file is different from that of checkpoint. "
                                 "Optimizer parameters not being resumed.")
         else:
