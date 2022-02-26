@@ -39,15 +39,15 @@ class Trainer(BaseTrainer):
         
         gatered_image1_featuture = xm.all_gather(image1_feature)
         gatered_image1_featuture = torch.cat(
-            gatered_image1_featuture[:rank * bs]
+            [gatered_image1_featuture[:rank * bs]]
             +[image1_feature]
-            + gatered_image1_featuture[(rank + 1) *bs :]
+            + [gatered_image1_featuture[(rank + 1) *bs :]]
         )
         gatered_image2_featuture = xm.all_gather(image2_feature)
         gatered_image2_featuture = torch.cat(
-            gatered_image2_featuture[:rank * bs]
+            [gatered_image2_featuture[:rank * bs]]
             +[image2_feature]
-            + gatered_image2_featuture[(rank + 1) *bs :]
+            + [gatered_image2_featuture[(rank + 1) *bs :]]
         )
         
         logits_per_image = logit_scale * gatered_image1_featuture @ gatered_image2_featuture.t()
