@@ -38,19 +38,19 @@ class Trainer(BaseTrainer):
         logit_scale = logit_scale.mean()
         
         gatered_image1_featuture = xm.all_gather(image1_feature)
-        gatered_image1_featuture = torch.cat(
+        all_image1_featuture = torch.cat(
             [gatered_image1_featuture[:rank * bs]]
             +[image1_feature]
             + [gatered_image1_featuture[(rank + 1) *bs :]]
         )
         gatered_image2_featuture = xm.all_gather(image2_feature)
-        gatered_image2_featuture = torch.cat(
+        all_image2_featuture = torch.cat(
             [gatered_image2_featuture[:rank * bs]]
             +[image2_feature]
             + [gatered_image2_featuture[(rank + 1) *bs :]]
         )
         
-        logits_per_image = logit_scale * gatered_image1_featuture @ gatered_image2_featuture.t()
+        logits_per_image = logit_scale * all_image1_featuture @ all_image2_featuture.t()
         ground_truth = torch.arange(len(logits_per_image)).long().to(self.device)
         loss = self.criterion(logits_per_image, ground_truth)
         return loss, logits_per_image[rank*bs:(rank+1)*bs, rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
