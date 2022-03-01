@@ -32,8 +32,8 @@ def main(index, config):
     train_data, valid_data = train_test_split(data, test_size=0.2)
     
     # setup data_loader instances
-    train_dataset = config.init_obj('dataset', module_data, mode = 'train', shuffle=True, dataframe = train_data)
-    valid_dataset = config.init_obj('dataset', module_data, mode = 'valid', shuffle=False, dataframe = valid_data)
+    train_dataset = config.init_obj('dataset', module_data, mode = 'train', dataframe = train_data)
+    valid_dataset = config.init_obj('dataset', module_data, mode = 'valid', dataframe = valid_data)
     
     train_dataloader, valid_dataloader = module_data.get_data_loaders(train_dataset, valid_dataset, config)
     
