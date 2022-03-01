@@ -27,7 +27,6 @@
     },
     "data_loader": {
         "batch_size": 128,
-        "shuffle": true,
         "num_workers": 2,
         "pin_memory": true,
         "drop_last": true
@@ -60,7 +59,7 @@
         "epochs": 100,
 
         "save_dir": "saved/",
-        "save_period": 3,
+        "save_period": 1,
         "verbosity": 2,
         "log_step": null,
         
