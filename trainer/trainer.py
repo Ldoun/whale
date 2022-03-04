@@ -51,7 +51,7 @@ class Trainer(BaseTrainer):
         )
         
         gathered_ids = xm.all_gather(ids)
-        one,zero = torch.ones(len(gathered_ids), dtype=torch.long, device=self.device), torch.zeros(len(gathered_ids), dtype=torch.long, device=self.device)
+        one,zero = torch.ones(len(gathered_ids), dtype=torch.float, device=self.device), torch.zeros(len(gathered_ids), dtype=torch.float, device=self.device)
         ground_truth = torch.stack([torch.where(gathered_ids==gathered_ids[i], one, zero) for i in range(len(gathered_ids))])
         
         logits_per_image = logit_scale * all_image1_featuture @ all_image2_featuture.t()
