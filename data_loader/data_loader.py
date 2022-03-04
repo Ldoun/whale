@@ -10,6 +10,8 @@ import numpy as np
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
+from meta_data import label_encoder
+
 
 class ImageDataset(Dataset):
     def __init__(
@@ -75,7 +77,9 @@ class ImageDataset(Dataset):
         image1 = self.transforms(image=image1)["image"]
         image2 = self.transforms(image=image2)["image"]
         
-        return image1, image2
+        id = label_encoder[self.data.iloc[idx]['individual_id']]
+        
+        return image1, image2, id
     
     
 def get_data_loaders(train_dataset, valid_dataset, config):

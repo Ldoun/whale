@@ -40,9 +40,9 @@
             "amsgrad": true
         }
     },
-    "loss": "cross_entropy_Loss",
+    "loss": "bce_logit_loss",
     "metrics": [
-        "accuracy", "top_k_acc"
+        "accuracy"
     ],
     "lr_scheduler": {
         "type": "CosineAnnealingWarmupRestarts",
