@@ -7,7 +7,7 @@ def accuracy(output, target):
         pred = torch.argmax(output, dim=1)
         assert pred.shape[0] == len(target)
         correct = 0
-        correct += torch.sum(torch.stack([t[pred[i]] == 1 for i,t in enumerate(target)]))
+        correct += torch.sum(torch.stack([t[pred[i]] == 1 for i,t in enumerate(target)])).item()
     return correct / len(target)
 
 
@@ -17,6 +17,6 @@ def top_k_acc(output, target, k=3):
         assert pred.shape[0] == len(target)
         correct = 0
         for j in range(k):
-            correct += torch.sum(torch.stack([t[pred[:,j,i]] == 1 for i,t in enumerate(target)]))
+            correct += torch.sum(torch.stack([t[pred[:,j,i]] == 1 for i,t in enumerate(target)])).item()
     return correct / len(target)
 
