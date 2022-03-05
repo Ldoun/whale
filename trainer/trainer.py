@@ -33,7 +33,7 @@ class Trainer(BaseTrainer):
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         
-    def _compute_loss(self, image1, image2, ids, rank, bs):
+    def _compute_loss(self, image1, image2, ids, rank, bs, validation=False):
         image1_feature, image2_feature, logit_scale = self.model(image1,image2)
         logit_scale = logit_scale.mean()
         
@@ -56,7 +56,10 @@ class Trainer(BaseTrainer):
         
         logits_per_image = logit_scale * all_image1_featuture @ all_image2_featuture.t()
         #ground_truth = torch.arange(len(logits_per_image)).long().to(self.device)
-        loss = self.criterion(logits_per_image, ground_truth)
+        if validation:
+            loss = None
+        else:
+            loss = self.criterion(logits_per_image, ground_truth)
         return loss, logits_per_image[rank*bs:(rank+1)*bs, rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
         
     def _train_epoch(self, epoch):
@@ -111,8 +114,8 @@ class Trainer(BaseTrainer):
         self.valid_metrics.reset()
         with torch.no_grad():
             for batch_idx, (image1, image2, ids) in enumerate(self.valid_data_loader):
-                loss, logit, ground_truth = self._compute_loss(image1, image2, ids, xm.get_ordinal(), self.config['data_loader']['batch_size'])
-                self.valid_metrics.update('loss', xm.mesh_reduce('valid_loss_reduce',loss.item(),np.mean))
+                loss, logit, ground_truth = self._compute_loss(image1, image2, ids, xm.get_ordinal(), self.config['data_loader']['batch_size'],validation=True)
+                #self.valid_metrics.update('loss', xm.mesh_reduce('valid_loss_reduce',loss.item(),np.mean))
                 for met in self.metric_ftns:
                     met_score = xm.mesh_reduce('valid_met_score', met(logit, ground_truth), np.mean)
                     self.valid_metrics.update(met.__name__, met_score)
