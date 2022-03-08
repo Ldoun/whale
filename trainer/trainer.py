@@ -14,6 +14,7 @@ class Trainer(BaseTrainer):
         super().__init__(model, criterion, metric_ftns, optimizer, lr_scheduler, config)
         self.config = config
         self.device = device
+        self.device_num =  xm.get_ordinal()
         self.n_samples = len(data_loader)
         self.data_loader = data_loader
         
@@ -73,7 +74,7 @@ class Trainer(BaseTrainer):
         start = time.time()
         for batch_idx, (image1, image2, ids) in enumerate(self.data_loader):
             self.optimizer.zero_grad()
-            loss, logit, ground_truth = self._compute_loss(image1, image2, ids, xm.get_ordinal(), self.config['data_loader']['batch_size'])
+            loss, logit, ground_truth = self._compute_loss(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'])
             loss.backward()
             xm.optimizer_step(self.optimizer)
             if self.lr_scheduler is not None:
@@ -112,15 +113,16 @@ class Trainer(BaseTrainer):
         """
         self.model.eval()
         self.valid_metrics.reset()
+        n_iter = len(self.valid_data_loader)
         with torch.no_grad():
             for batch_idx, (image1, image2, ids) in enumerate(self.valid_data_loader):
-                loss, logit, ground_truth = self._compute_loss(image1, image2, ids, xm.get_ordinal(), self.config['data_loader']['batch_size'],validation=True)
+                loss, logit, ground_truth = self._compute_loss(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'],validation=True)
                 #self.valid_metrics.update('loss', xm.mesh_reduce('valid_loss_reduce',loss.item(),np.mean))
                 for met in self.metric_ftns:
                     met_score = xm.mesh_reduce('valid_met_score', met(logit, ground_truth), np.mean)
                     self.valid_metrics.update(met.__name__, met_score)
                 if self.writer is not None:
-                    self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
+                    self.writer.set_step((epoch - 1) * n_iter + batch_idx, 'valid')
                     #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
         # add histogram of model parameters to the tensorboard
         if self.writer is not None:

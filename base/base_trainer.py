@@ -42,7 +42,7 @@ class BaseTrainer:
         self.checkpoint_dir = config.save_dir
 
         # setup visualization writer instance    
-        if xm.is_master_ordinal():            
+        if xm.is_master_ordinal() and cfg_trainer['tensorboard']:            
             self.writer = TensorboardWriter(config.log_dir, self.logger, cfg_trainer['tensorboard'])
         else:
             self.writer = None
