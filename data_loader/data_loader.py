@@ -107,7 +107,7 @@ def get_data_loaders(train_dataset, valid_dataset, config):
     )
     
     valid_dataloader = DataLoader(
-        train_dataset,
+        valid_dataset,
         batch_size=config['data_loader']['batch_size'],
         sampler=valid_sampler,
         num_workers=config['data_loader']['num_workers'],
