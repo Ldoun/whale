@@ -85,7 +85,7 @@ class Trainer(BaseTrainer):
         start = time.time()
         for batch_idx, (image1, image2, ids) in enumerate(self.data_loader):
             self.optimizer.zero_grad()
-            loss, logit, ground_truth = self._val_compute(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'])
+            loss, logit, ground_truth = self._compute_loss(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'])
             loss.backward()
             xm.optimizer_step(self.optimizer)
             if self.lr_scheduler is not None:
@@ -127,7 +127,7 @@ class Trainer(BaseTrainer):
         n_iter = len(self.valid_data_loader)
         with torch.no_grad():
             for batch_idx, (image1, image2, ids) in enumerate(self.valid_data_loader):
-                loss, logit, ground_truth = self._compute_loss(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'],validation=True)
+                logit, ground_truth = self._val_compute(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'])
                 #self.valid_metrics.update('loss', xm.mesh_reduce('valid_loss_reduce',loss.item(),np.mean))
                 for met in self.metric_ftns:
                     met_score = xm.mesh_reduce('valid_met_score', met(logit, ground_truth), np.mean)
