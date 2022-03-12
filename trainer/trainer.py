@@ -34,7 +34,7 @@ class Trainer(BaseTrainer):
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         
-    def _compute_loss(self, image1, image2, ids, rank, bs, validation=False):
+    def _compute_loss(self, image1, image2, ids, rank, bs):
         image1_feature, image2_feature, logit_scale = self.model(image1,image2)
         logit_scale = logit_scale.mean()
         
@@ -57,11 +57,22 @@ class Trainer(BaseTrainer):
         
         logits_per_image = logit_scale * all_image1_featuture @ all_image2_featuture.t()
         #ground_truth = torch.arange(len(logits_per_image)).long().to(self.device)
-        if validation:
-            loss = None
-        else:
-            loss = self.criterion(logits_per_image, ground_truth)
+        
+        loss = self.criterion(logits_per_image, ground_truth)
         return loss, logits_per_image[rank*bs:(rank+1)*bs, rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
+    
+    def _val_compute(self, image1, image2, ids, rank, bs):
+        image1_feature, image2_feature, logit_scale = self.model(image1,image2)
+        logit_scale = logit_scale.mean()
+        
+        gatered_image1_featuture = xm.all_gather(image1_feature)
+        gatered_image2_featuture = xm.all_gather(image2_feature)
+        gathered_ids = xm.all_gather(ids)
+        
+        one,zero = torch.ones(len(gathered_ids), dtype=torch.float, device=self.device), torch.zeros(len(gathered_ids), dtype=torch.float, device=self.device)
+        ground_truth = torch.stack([torch.where(gathered_ids==gathered_ids[i], one, zero) for i in range(len(gathered_ids))])
+        logits_per_image = logit_scale * gatered_image1_featuture @ gatered_image2_featuture.t()
+        return logits_per_image[rank*bs:(rank+1)*bs, rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
         
     def _train_epoch(self, epoch):
         """
@@ -74,7 +85,7 @@ class Trainer(BaseTrainer):
         start = time.time()
         for batch_idx, (image1, image2, ids) in enumerate(self.data_loader):
             self.optimizer.zero_grad()
-            loss, logit, ground_truth = self._compute_loss(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'])
+            loss, logit, ground_truth = self._val_compute(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'])
             loss.backward()
             xm.optimizer_step(self.optimizer)
             if self.lr_scheduler is not None:
