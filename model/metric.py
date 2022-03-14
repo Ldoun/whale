@@ -8,7 +8,7 @@ def accuracy(output, target):
         assert pred.shape[0] == len(target)
         correct = 0
         correct += torch.sum(pred == target).item()
-    return correct / (target.size(0) * target.size(1))
+    return correct / torch.numel(target)
 
 #cannot use top_k_acc for multi label problem
 def top_k_acc(output, target, k=3):
