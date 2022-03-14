@@ -59,7 +59,7 @@ class Trainer(BaseTrainer):
         #ground_truth = torch.arange(len(logits_per_image)).long().to(self.device)
         
         loss = self.criterion(logits_per_image, ground_truth)
-        return loss, logits_per_image[rank*bs:(rank+1)*bs, rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
+        return loss, logits_per_image[rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
     
     def _val_compute(self, image1, image2, ids, rank, bs):
         image1_feature, image2_feature, logit_scale = self.model(image1,image2)
@@ -72,7 +72,7 @@ class Trainer(BaseTrainer):
         one,zero = torch.ones(len(gathered_ids), dtype=torch.float, device=self.device), torch.zeros(len(gathered_ids), dtype=torch.float, device=self.device)
         ground_truth = torch.stack([torch.where(gathered_ids==gathered_ids[i], one, zero) for i in range(len(gathered_ids))])
         logits_per_image = logit_scale * gatered_image1_featuture @ gatered_image2_featuture.t()
-        return logits_per_image[rank*bs:(rank+1)*bs, rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
+        return logits_per_image[rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
         
     def _train_epoch(self, epoch):
         """
