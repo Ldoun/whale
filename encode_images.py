@@ -9,13 +9,14 @@ from albumentations.pytorch import ToTensorV2
 from model.model import ClipImageEncoer
 
 try:
-    print('using torch xla')
     import torch_xla
     import torch_xla.core.xla_model as xm
-    
     device = xm.xla_device()
+
 except:
     device = torch.device("cuda")
+    
+print(f'using {device}')
 
 args = argparse.ArgumentParser(description='PyTorch Template')
 args.add_argument('--image_path', default=None, type=str)
