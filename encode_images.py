@@ -12,7 +12,7 @@ from model.model import ClipImageEncoer
 
 args = argparse.ArgumentParser(description='PyTorch Template')
 args.add_argument('--image_path', default=None, type=str)
-args.add_argument('csv_file', default=None, type=str)
+args.add_argument('--csv_file', default=None, type=str)
 config = args.parse_args()
 
 train_data = pd.read_csv(config.csv_file)
