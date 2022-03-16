@@ -59,7 +59,7 @@ with torch.no_grad():
         image = transforms(image=image)["image"].to(device).unsqueeze(0)
         
         image_feature, logit_scale = model.encode_image(image)
-        np_image_feature = image_feature.numpy()
+        np_image_feature = image_feature.cpu().numpy()
         
         np.save(os.path.join(config.save_path, f'{i}.npy'), np_image_feature)
         image_names.append(image)
