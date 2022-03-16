@@ -67,8 +67,8 @@ with torch.no_grad():
         ids.append(row['individual_id'])
         
         if i % save_every == 0:
-            print(f'{i}/{len(train_data)}')
-            print(logit_scale)
+            print(f'{i}/{len(train_data)}',flush=True)
+            print(logit_scale,flush=True)
             data['image'] = pd.Series(image_names)
             data['npy'] = pd.Series(np_file_names)
             data['id'] = pd.Series(ids)
