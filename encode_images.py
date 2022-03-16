@@ -13,7 +13,8 @@ try:
     import torch_xla.core.xla_model as xm
     device = xm.xla_device()
 
-except:
+except Exception as e:
+    print(e)
     device = torch.device("cuda")
     
 print(f'using {device}')
@@ -53,7 +54,7 @@ model = ClipImageEncoer(
 with torch.no_grad():
     for i, row in train_data.iterrows():
         image = np.array(Image.open(os.path.join(config.image_path,row['image'])).convert('RGB'))
-        image = transforms(image=image)["image"].to(device)
+        image = transforms(image=image)["image"].to(device).unsqueeze(0)
         
         image_feature, logit_scale = model.encode_image(image)
         np_image_feature = image_feature.numpy()
