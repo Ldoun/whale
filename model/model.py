@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from base import BaseModel
+#from base import BaseModel
 
 
 from collections import OrderedDict
@@ -243,7 +243,7 @@ class VisualTransformer(nn.Module):
         return x
 
 
-class ClipImageEncoer(BaseModel):
+class ClipImageEncoer(nn.Module):
     def __init__(self,
                  embed_dim: int,
                  image_resolution: int,
