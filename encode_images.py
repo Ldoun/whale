@@ -54,7 +54,7 @@ with torch.no_grad():
         image = np.array(Image.open(os.path.join(config.image_path,row['image'])).convert('RGB'))
         image = transforms(image=image)["image"].to(device)
         
-        image_feature, logit_scale = model(image).encode_image(image)
+        image_feature, logit_scale = model.encode_image(image)
         np_image_feature = image_feature.numpy()
         
         np.save(f'{i}.npy', np_image_feature)
