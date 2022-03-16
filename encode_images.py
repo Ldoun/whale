@@ -22,6 +22,8 @@ print(f'using {device}')
 args = argparse.ArgumentParser(description='PyTorch Template')
 args.add_argument('--image_path', default=None, type=str)
 args.add_argument('--csv_file', default=None, type=str)
+args.add_argument('--save_path', default=None, type=str)
+
 config = args.parse_args()
 
 train_data = pd.read_csv(config.csv_file)
@@ -59,7 +61,7 @@ with torch.no_grad():
         image_feature, logit_scale = model.encode_image(image)
         np_image_feature = image_feature.numpy()
         
-        np.save(f'{i}.npy', np_image_feature)
+        np.save(os.path.join(config.save_path, f'{i}.npy'), np_image_feature)
         image_names.append(image)
         np_file_names.append(f'{i}.npy')
         ids.append(row['individual_id'])
@@ -70,3 +72,4 @@ with torch.no_grad():
             data['image'] = pd.Series(image_names)
             data['npy'] = pd.Series(np_file_names)
             data['id'] = pd.Series(ids)
+            data.to_csv('encode_image.csv',index=False)
