@@ -62,7 +62,7 @@ with torch.no_grad():
         np_image_feature = image_feature.cpu().numpy()
         
         np.save(os.path.join(config.save_path, f'{i}.npy'), np_image_feature)
-        image_names.append(image)
+        image_names.append(row['image'])
         np_file_names.append(f'{i}.npy')
         ids.append(row['individual_id'])
         
