@@ -282,6 +282,12 @@ class ClipImageEncoer(nn.Module):
         image_features2 = image_features2 / image_features2.norm(dim=-1, keepdim=True)
         
         return image_features1, image_features2, self.logit_scale.exp()
+    
+    def encode_image(self, image):
+        image_features = self.visual(image)
+        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        
+        return image_features, self.logit_scale.exp()
 
 
 def convert_weights(model: nn.Module):
