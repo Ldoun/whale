@@ -4,11 +4,18 @@ import argparse
 import numpy as np
 import pandas as pd
 from PIL import Image
-import torch_xla
-import torch_xla.core.xla_model as xm
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from model.model import ClipImageEncoer
+
+try:
+    print('using torch xla')
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    
+    device = xm.xla_device()
+except:
+    device = torch.device("cuda")
 
 args = argparse.ArgumentParser(description='PyTorch Template')
 args.add_argument('--image_path', default=None, type=str)
@@ -40,12 +47,12 @@ model = ClipImageEncoer(
       vision_layers= [2,3,4,2],
       vision_width= 64,
       vision_patch_size= None
-  )
+  ).to(device)
 
 with torch.no_grad():
     for i, row in train_data.iterrows():
         image = np.array(Image.open(os.path.join(config.image_path,row['image'])).convert('RGB'))
-        image = transforms(image=image)["image"]
+        image = transforms(image=image)["image"].to(device)
         
         image_feature, logit_scale = model(image).encode_image(image)
         np_image_feature = image_feature.numpy()
