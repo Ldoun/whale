@@ -83,9 +83,6 @@ def encode_images(index, config):
         
     
 if __name__ == '__main__':
-
-    print(f'using {device}')
-
     args = argparse.ArgumentParser(description='PyTorch Template')
     args.add_argument('--image_path', default=None, type=str)
     args.add_argument('--csv_file', default=None, type=str)
@@ -101,6 +98,7 @@ if __name__ == '__main__':
         xmp.spawn(encode_images, args=(config,), nprocs=8)
     
     else:
+        print(f'using {device}')
         train_data = pd.read_csv(config.csv_file)
         image_names = []
         np_file_names = []
