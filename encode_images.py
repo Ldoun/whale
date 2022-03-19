@@ -16,7 +16,6 @@ try:
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as pl
     import torch_xla.distributed.xla_multiprocessing as xmp
-    device = xm.xla_device()
 
 except Exception as e:
     print(e)
@@ -98,6 +97,7 @@ if __name__ == '__main__':
     config = args.parse_args()
 
     if config.use_xla:
+        print('using xla')
         xmp.spawn(encode_images, args=(config,), nprocs=8)
     
     else:
