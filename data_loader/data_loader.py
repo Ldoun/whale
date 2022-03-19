@@ -110,7 +110,7 @@ class SingleImageDataloader(Dataset):
     def __getitem__(self, idx):
         image_name = self.data.iloc[idx]['image']
         image = np.array(Image.open(os.path.join(self.data_dir,image_name)).convert('RGB'))
-        image = self.transforms(image=image["image"])
+        image = self.transforms(image=image)["image"]
         
         whale_id = self.data.iloc[idx]['individual_id']
         return image, whale_id, image_name
