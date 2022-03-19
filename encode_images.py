@@ -9,7 +9,7 @@ import albumentations as A
 from torch.utils.data import DataLoader
 from albumentations.pytorch import ToTensorV2
 from model.model import ClipImageEncoer
-from data_loader.data_loader import single_image_dataloader
+from data_loader.data_loader import SingleImageDataloader
 
 try:
     import torch_xla
@@ -35,7 +35,7 @@ def encode_images(index, config):
     model.eval()
 
     data = pd.read_csv(config.csv_file)
-    dataset = single_image_dataloader(
+    dataset = SingleImageDataloader(
         data_dir = config['image_path'],
         dataframe = data,
         image_size = 448
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     args.add_argument('--csv_file', default=None, type=str)
     args.add_argument('--save_path', default=None, type=str)
     args.add_argument('--save_freq', default=100, type=int)
-    args.add_argument('--use_xla', default=False, type=bool)
+    args.add_argument('--use_xla', default=False, type=bool, action='store_true')
     
 
     config = args.parse_args()
