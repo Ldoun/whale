@@ -1,3 +1,4 @@
+from cProfile import label
 import os
 import pandas as pd
 from PIL import Image
@@ -80,7 +81,39 @@ class ImageDataset(Dataset):
         id = label_encoder[self.data.iloc[idx]['individual_id']]
         
         return image1, image2, id
+
+class SingleImageDataloader(Dataset):
+    def __init__(
+        self,
+        data_dir,
+        dataframe,
+        image_size,
+    ):
+        super().__init__()
+
+        self.data_dir = data_dir
+        self.data = dataframe.copy()
+        self.transforms = A.Compose([
+            A.Resize(image_size, image_size),
+            A.Normalize(
+                    mean=[0.485, 0.456, 0.406], 
+                    std=[0.229, 0.224, 0.225], 
+                    max_pixel_value=255.0, 
+                    p=1.0
+                ),
+            ToTensorV2()], p=1.
+        )
+
+    def __len__(self):
+        return len(self.data)
     
+    def __getitem__(self, idx):
+        image_name = self.data.iloc[idx]['image']
+        image = np.array(Image.open(os.path.join(self.data_dir,image_name)).convert('RGB'))
+        image = self.transforms(image=image["image"])
+        
+        whale_id = self.data.iloc[idx]['individual_id']
+        return image, whale_id, image_name
     
 def get_data_loaders(train_dataset, valid_dataset, config):
     train_sampler = torch.utils.data.distributed.DistributedSampler(

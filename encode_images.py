@@ -1,3 +1,4 @@
+import enum
 import os
 import torch
 import argparse
@@ -5,8 +6,11 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 import albumentations as A
+from torch.utils.data import DataLoader
 from albumentations.pytorch import ToTensorV2
+import torch_xla.distributed.parallel_loader as pl
 from model.model import ClipImageEncoer
+from data_loader.data_loader import single_image_dataloader
 
 try:
     import torch_xla
@@ -16,23 +20,99 @@ try:
 except Exception as e:
     print(e)
     device = torch.device("cuda")
+
+def encode_images(index, config):
+    device = xm.xla_device()
     
-print(f'using {device}')
+    model = ClipImageEncoer(
+        embed_dim= 768,
+        image_resolution= 448,
+        vision_layers= [2,3,4,2],
+        vision_width= 64,
+        vision_patch_size= None
+    ).to(device)
+    model.eval()
 
-args = argparse.ArgumentParser(description='PyTorch Template')
-args.add_argument('--image_path', default=None, type=str)
-args.add_argument('--csv_file', default=None, type=str)
-args.add_argument('--save_path', default=None, type=str)
+    data = pd.read_csv(config.csv_file)
+    dataset = single_image_dataloader(
+        data_dir = config['image_path'],
+        dataframe = data,
+        image_size = 448
+    )
 
-config = args.parse_args()
+    sampler = torch.utils.data.distributed.DistributedSampler(
+            dataset,
+            num_replicas=xm.xrt_world_size(),
+            rank=xm.get_ordinal(),
+            shuffle=False
+        )
 
-train_data = pd.read_csv(config.csv_file)
-image_names = []
-np_file_names = []
-ids = []
-data = pd.DataFrame()
+    data_loader = DataLoader(
+        dataset,
+        batch_size=config['batch_size'],
+        sampler=sampler,
+        num_workers=10,
+        pin_memory=False,
+        drop_last=False,
+        shuffle=False
+    )
 
-save_every = 500
+    data_loader = pl.MpDeviceLoader(data_loader,device)
+    n_iter = len(data_loader)
+    data = pd.DataFrame()
+
+    for batch_idx, data in enumerate(data_loader):
+        print(f'{batch_idx}/{n_iter}', flush=True)
+        image, whale_id, image_name = data
+        
+        image_feature, logit_scale = model.enocde_image(image)
+        
+        np_file_names.append(f'{index}_{batch_idx}.npy', image_feature.cpu().numpy())
+        ids.append(whale_id.item())
+        image_names.append(image_name.item())
+
+        if batch_idx % save_every == 0:
+            data['image'] = pd.Series(image_names)
+            data['npy'] = pd.Series(np_file_names)
+            data['id'] = pd.Series(ids)
+            data.to_csv(output_path, mode='a', header=not os.path.exists(output_path))
+
+        
+    
+if __name__ == '__main__':
+
+    print(f'using {device}')
+
+    args = argparse.ArgumentParser(description='PyTorch Template')
+    args.add_argument('--image_path', default=None, type=str)
+    args.add_argument('--csv_file', default=None, type=str)
+    args.add_argument('--save_path', default=None, type=str)
+    args.add_argument('--save_freq', default=100, type=int)
+    args.add_argument('--use_xla', default=False, type=bool)
+    
+
+    config = args.parse_args()
+
+
+    
+
+    if config.use_xla:
+        encode
+        valid_sampler = torch.utils.data.distributed.DistributedSampler(
+            valid_dataset,
+            num_replicas=xm.xrt_world_size(),
+            rank=xm.get_ordinal(),
+            shuffle=False
+        )
+
+        
+
+    image_names = []
+    np_file_names = []
+    ids = []
+    data = pd.DataFrame()
+
+save_every = config.save_freq
 
 transforms = A.Compose([
     A.Resize(448, 448),
