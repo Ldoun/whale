@@ -65,7 +65,7 @@ def encode_images(index, config):
         print(f'{batch_idx}/{n_iter}', flush=True)
         image, whale_id, image_name = data
         
-        image_feature, logit_scale = model.enocde_image(image)
+        image_feature, logit_scale = model.encode_image(image)
         
         np_image_feature = image_feature.cpu().numpy()
         for i in range(config.batch_size):
