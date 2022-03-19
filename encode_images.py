@@ -60,6 +60,9 @@ def encode_images(index, config):
     data_loader = pl.MpDeviceLoader(data_loader,device)
     n_iter = len(data_loader)
     data = pd.DataFrame()
+    np_file_names = []
+    ids = []
+    image_names = []
     
     with torch.no_grad():
         for batch_idx, data in enumerate(data_loader, start=1):
