@@ -60,25 +60,26 @@ def encode_images(index, config):
     data_loader = pl.MpDeviceLoader(data_loader,device)
     n_iter = len(data_loader)
     data = pd.DataFrame()
-
-    for batch_idx, data in enumerate(data_loader, start=1):
-        print(f'{batch_idx}/{n_iter}', flush=True)
-        image, whale_id, image_name = data
-        
-        image_feature, logit_scale = model.encode_image(image)
-        
-        np_image_feature = image_feature.cpu().numpy()
-        for i in range(config.batch_size):
-            np_file_names.append(f'{index}_{batch_idx * config.batch_size + i}.npy', np_image_feature[i:,:])
+    
+    with torch.no_grad():
+        for batch_idx, data in enumerate(data_loader, start=1):
+            print(f'{batch_idx}/{n_iter}', flush=True)
+            image, whale_id, image_name = data
             
-        ids.append(whale_id.item())
-        image_names.append(image_name.item())
+            image_feature, logit_scale = model.encode_image(image)
+            
+            np_image_feature = image_feature.cpu().numpy()
+            for i in range(config.batch_size):
+                np_file_names.append(f'{index}_{batch_idx * config.batch_size + i}.npy', np_image_feature[i:,:])
+                
+            ids.append(whale_id.item())
+            image_names.append(image_name.item())
 
-        if batch_idx % save_every == 0:
-            data['image'] = pd.Series(image_names)
-            data['npy'] = pd.Series(np_file_names)
-            data['id'] = pd.Series(ids)
-            data.to_csv(f'{index}_npy_image.csv', mode='a', header=not os.path.exists(f'{index}_npy_image.csv'))
+            if batch_idx % save_every == 0:
+                data['image'] = pd.Series(image_names)
+                data['npy'] = pd.Series(np_file_names)
+                data['id'] = pd.Series(ids)
+                data.to_csv(f'{index}_npy_image.csv', mode='a', header=not os.path.exists(f'{index}_npy_image.csv'))
 
         
     
