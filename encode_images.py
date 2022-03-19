@@ -59,7 +59,7 @@ def encode_images(index, config):
 
     data_loader = pl.MpDeviceLoader(data_loader,device)
     n_iter = len(data_loader)
-    data = pd.DataFrame()
+    datafrmae = pd.DataFrame()
     np_file_names = []
     ids = []
     image_names = []
@@ -80,10 +80,10 @@ def encode_images(index, config):
             image_names.extend(image_name)
 
             if batch_idx % config.save_freq == 0:
-                data['image'] = pd.Series(image_names)
-                data['npy'] = pd.Series(np_file_names)
-                data['id'] = pd.Series(ids)
-                data.to_csv(f'{index}_npy_image.csv', mode='a', header=not os.path.exists(f'{index}_npy_image.csv'))
+                datafrmae['image'] = pd.Series(image_names)
+                datafrmae['npy'] = pd.Series(np_file_names)
+                datafrmae['id'] = pd.Series(ids)
+                datafrmae.to_csv(f'{index}_npy_image.csv', mode='a', header=not os.path.exists(f'{index}_npy_image.csv'))
 
         
     
