@@ -89,7 +89,7 @@ if __name__ == '__main__':
     args.add_argument('--csv_file', default=None, type=str)
     args.add_argument('--save_path', default=None, type=str)
     args.add_argument('--save_freq', default=100, type=int)
-    args.add_argument('--use_xla', default=False, type=bool, action='store_true')
+    args.add_argument('--use_xla', default=False, action='store_true')
     
 
     config = args.parse_args()
