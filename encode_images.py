@@ -62,13 +62,16 @@ def encode_images(index, config):
     n_iter = len(data_loader)
     data = pd.DataFrame()
 
-    for batch_idx, data in enumerate(data_loader):
+    for batch_idx, data in enumerate(data_loader, start=1):
         print(f'{batch_idx}/{n_iter}', flush=True)
         image, whale_id, image_name = data
         
         image_feature, logit_scale = model.enocde_image(image)
         
-        np_file_names.append(f'{index}_{batch_idx}.npy', image_feature.cpu().numpy())
+        np_image_feature = image_feature.cpu().numpy()
+        for i in range(config['batch_size']):
+            np_file_names.append(f'{index}_{batch_idx * config["batch_size"] + i}.npy', np_image_feature[i:,:])
+            
         ids.append(whale_id.item())
         image_names.append(image_name.item())
 
