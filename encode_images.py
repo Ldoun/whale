@@ -35,7 +35,7 @@ def encode_images(index, config):
 
     data = pd.read_csv(config.csv_file)
     dataset = SingleImageDataloader(
-        data_dir = config['image_path'],
+        data_dir = config.image_path,
         dataframe = data,
         image_size = 448
     )
@@ -49,7 +49,7 @@ def encode_images(index, config):
 
     data_loader = DataLoader(
         dataset,
-        batch_size=config['batch_size'],
+        batch_size=config.batch_size,
         sampler=sampler,
         num_workers=10,
         pin_memory=False,
@@ -68,8 +68,8 @@ def encode_images(index, config):
         image_feature, logit_scale = model.enocde_image(image)
         
         np_image_feature = image_feature.cpu().numpy()
-        for i in range(config['batch_size']):
-            np_file_names.append(f'{index}_{batch_idx * config["batch_size"] + i}.npy', np_image_feature[i:,:])
+        for i in range(config.batch_size):
+            np_file_names.append(f'{index}_{batch_idx * config.batch_size + i}.npy', np_image_feature[i:,:])
             
         ids.append(whale_id.item())
         image_names.append(image_name.item())
@@ -88,6 +88,7 @@ if __name__ == '__main__':
     args.add_argument('--csv_file', default=None, type=str)
     args.add_argument('--save_path', default=None, type=str)
     args.add_argument('--save_freq', default=100, type=int)
+    args.add_argument('--batch_size', default=32, type=int)
     args.add_argument('--use_xla', default=False, action='store_true')
     
 
