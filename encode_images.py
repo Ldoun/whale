@@ -76,8 +76,8 @@ def encode_images(index, config):
                 np.save(os.path.join(config.save_path, f'{index}_{batch_idx * config.batch_size + i}.npy'), np_image_feature[i:,:])
                 np_file_names.append(f'{index}_{batch_idx * config.batch_size + i}.npy')
                 
-            ids.append(whale_id.item())
-            image_names.append(image_name.item())
+            ids.extend(whale_id)
+            image_names.extend(image_name)
 
             if batch_idx % save_every == 0:
                 data['image'] = pd.Series(image_names)
