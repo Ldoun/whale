@@ -79,7 +79,7 @@ def encode_images(index, config):
             ids.extend(whale_id)
             image_names.extend(image_name)
 
-            if batch_idx % save_every == 0:
+            if batch_idx % config.save_freq == 0:
                 data['image'] = pd.Series(image_names)
                 data['npy'] = pd.Series(np_file_names)
                 data['id'] = pd.Series(ids)
@@ -110,8 +110,6 @@ if __name__ == '__main__':
         np_file_names = []
         ids = []
         data = pd.DataFrame()
-
-        save_every = config.save_freq
 
         transforms = A.Compose([
             A.Resize(448, 448),
@@ -145,7 +143,7 @@ if __name__ == '__main__':
                 np_file_names.append(f'{i}.npy')
                 ids.append(row['individual_id'])
                 
-                if i % save_every == 0:
+                if i % config.save_freq == 0:
                     print(f'{i}/{len(train_data)}',flush=True)
                     print(logit_scale,flush=True)
                     data['image'] = pd.Series(image_names)
