@@ -72,7 +72,8 @@ def encode_images(index, config):
             image_feature, logit_scale = model.encode_image(image)
             
             np_image_feature = image_feature.cpu().numpy()
-            for i in range(config.batch_size):
+            bs = image.shape[0]
+            for i in range(bs):
                 np.save(os.path.join(config.save_path, f'{index}_{batch_idx * config.batch_size + i}.npy'), np_image_feature[i,:])
                 np_file_names.append(f'{index}_{batch_idx * config.batch_size + i}.npy')
                 
