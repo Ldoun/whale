@@ -73,7 +73,7 @@ def encode_images(index, config):
             
             np_image_feature = image_feature.cpu().numpy()
             for i in range(config.batch_size):
-                np.save(os.path.join(config.save_path, f'{index}_{batch_idx * config.batch_size + i}.npy'), np_image_feature[i:,:])
+                np.save(os.path.join(config.save_path, f'{index}_{batch_idx * config.batch_size + i}.npy'), np_image_feature[i,:])
                 np_file_names.append(f'{index}_{batch_idx * config.batch_size + i}.npy')
                 
             ids.extend(whale_id)
