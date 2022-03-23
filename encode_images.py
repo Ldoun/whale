@@ -103,7 +103,6 @@ if __name__ == '__main__':
     args.add_argument('--save_freq', default=100, type=int)
     args.add_argument('--batch_size', default=32, type=int)
     args.add_argument('--use_xla', default=False, action='store_true')
-    
 
     config = args.parse_args()
 
@@ -114,20 +113,21 @@ if __name__ == '__main__':
     else:
         print(f'using {device}')
         train_data = pd.read_csv(config.csv_file)
-        image_names = []
-        np_file_names = []
-        ids = []
-        data = pd.DataFrame()
+        
+        data = pd.read_csv(config.csv_file)
+        dataset = SingleImageDataloader(
+            data_dir = config.image_path,
+            dataframe = data,
+            image_size = 448
+        )
 
-        transforms = A.Compose([
-            A.Resize(448, 448),
-            A.Normalize(
-                    mean=[0.485, 0.456, 0.406], 
-                    std=[0.229, 0.224, 0.225], 
-                    max_pixel_value=255.0, 
-                    p=1.0
-                ),
-            ToTensorV2()], p=1.
+        data_loader = DataLoader(
+            dataset,
+            batch_size=config.batch_size,
+            num_workers=10,
+            pin_memory=False,
+            drop_last=False,
+            shuffle=False
         )
 
         model = ClipImageEncoer(
@@ -137,24 +137,39 @@ if __name__ == '__main__':
             vision_width= 64,
             vision_patch_size= None
         ).to(device)
+        model.eval()
+        
+        n_iter = len(data_loader)
+        datafrmae = pd.DataFrame()
+        np_file_names = []
+        ids = []
+        image_names = []
 
         with torch.no_grad():
-            for i, row in train_data.iterrows():
-                image = np.array(Image.open(os.path.join(config.image_path,row['image'])).convert('RGB'))
-                image = transforms(image=image)["image"].to(device).unsqueeze(0)
-                
+            for batch_idx, data in enumerate(data_loader):
+                print(f'{batch_idx}/{n_iter}', flush=True)
+                image, whale_id, image_name = data
+                image = image.to(device)
+            
                 image_feature, logit_scale = model.encode_image(image)
                 np_image_feature = image_feature.cpu().numpy()
+                bs = image.shape[0]
+                for i in range(bs):
+                    np.save(os.path.join(config.save_path, f'test_{batch_idx * config.batch_size + i}.npy'), np_image_feature[i,:])
+                    np_file_names.append(f'test_{batch_idx * config.batch_size + i}.npy')
                 
-                np.save(os.path.join(config.save_path, f'{i}.npy'), np_image_feature)
-                image_names.append(row['image'])
-                np_file_names.append(f'{i}.npy')
-                ids.append(row['individual_id'])
+                ids.extend(whale_id)
+                image_names.extend(image_name)
                 
-                if i % config.save_freq == 0:
-                    print(f'{i}/{len(train_data)}',flush=True)
-                    print(logit_scale,flush=True)
-                    data['image'] = pd.Series(image_names)
-                    data['npy'] = pd.Series(np_file_names)
-                    data['id'] = pd.Series(ids)
-                    data.to_csv('encode_image.csv',index=False)
+                if (batch_idx + 1) % config.save_freq == 0:
+                    datafrmae = pd.DataFrame()
+                    datafrmae['image'] = pd.Series(image_names)
+                    datafrmae['npy'] = pd.Series(np_file_names)
+                    datafrmae['id'] = pd.Series(ids)
+                    datafrmae.to_csv(f'test_npy_image.csv', mode='w')
+                    
+        datafrmae = pd.DataFrame()
+        datafrmae['image'] = pd.Series(image_names)
+        datafrmae['npy'] = pd.Series(np_file_names)
+        datafrmae['id'] = pd.Series(ids)
+        datafrmae.to_csv(f'test_npy_image.csv', mode='w')
