@@ -118,7 +118,8 @@ if __name__ == '__main__':
         dataset = SingleImageDataloader(
             data_dir = config.image_path,
             dataframe = data,
-            image_size = 448
+            image_size = 448,
+            test=True
         )
 
         data_loader = DataLoader(
@@ -158,18 +159,18 @@ if __name__ == '__main__':
                     np.save(os.path.join(config.save_path, f'test_{batch_idx * config.batch_size + i}.npy'), np_image_feature[i,:])
                     np_file_names.append(f'test_{batch_idx * config.batch_size + i}.npy')
                 
-                ids.extend(whale_id)
+                #ids.extend(whale_id)
                 image_names.extend(image_name)
                 
                 if (batch_idx + 1) % config.save_freq == 0:
                     datafrmae = pd.DataFrame()
                     datafrmae['image'] = pd.Series(image_names)
                     datafrmae['npy'] = pd.Series(np_file_names)
-                    datafrmae['id'] = pd.Series(ids)
+                    #datafrmae['id'] = pd.Series(ids)
                     datafrmae.to_csv(f'test_npy_image.csv', mode='w')
                     
         datafrmae = pd.DataFrame()
         datafrmae['image'] = pd.Series(image_names)
         datafrmae['npy'] = pd.Series(np_file_names)
-        datafrmae['id'] = pd.Series(ids)
+        #datafrmae['id'] = pd.Series(ids)
         datafrmae.to_csv(f'test_npy_image.csv', mode='w')

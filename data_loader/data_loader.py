@@ -88,11 +88,13 @@ class SingleImageDataloader(Dataset):
         data_dir,
         dataframe,
         image_size,
+        test = False
     ):
         super().__init__()
 
         self.data_dir = data_dir
         self.data = dataframe.copy()
+        self.test = test
         self.transforms = A.Compose([
             A.Resize(image_size, image_size),
             A.Normalize(
@@ -112,7 +114,11 @@ class SingleImageDataloader(Dataset):
         image = np.array(Image.open(os.path.join(self.data_dir,image_name)).convert('RGB'))
         image = self.transforms(image=image)["image"]
         
-        whale_id = self.data.iloc[idx]['individual_id']
+        if self.test: 
+            whale_id = None
+        else:
+            whale_id = self.data.iloc[idx]['individual_id']
+                
         return image, whale_id, image_name
     
 def get_data_loaders(train_dataset, valid_dataset, config):
