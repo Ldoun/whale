@@ -5,7 +5,10 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-import torch_xla.core.xla_model as xm
+try:
+    import torch_xla.core.xla_model as xm
+except:
+    pass
 from torchvision import transforms
 import numpy as np
 import albumentations as A
