@@ -65,7 +65,7 @@ def encode_images(index, config):
     image_names = []
     
     with torch.no_grad():
-        for batch_idx, data in enumerate(data_loader, start=1):
+        for batch_idx, data in enumerate(data_loader):
             print(f'{batch_idx}/{n_iter}', flush=True)
             image, whale_id, image_name = data
             
@@ -80,11 +80,18 @@ def encode_images(index, config):
             ids.extend(whale_id)
             image_names.extend(image_name)
 
-            if batch_idx % config.save_freq == 0:
+            if (batch_idx + 1) % config.save_freq == 0:
+                datafrmae = pd.DataFrame()
                 datafrmae['image'] = pd.Series(image_names)
                 datafrmae['npy'] = pd.Series(np_file_names)
                 datafrmae['id'] = pd.Series(ids)
-                datafrmae.to_csv(f'{index}_npy_image.csv', mode='a', header=not os.path.exists(f'{index}_npy_image.csv'))
+                datafrmae.to_csv(f'{index}_npy_image.csv', mode='w')
+                
+    datafrmae = pd.DataFrame()
+    datafrmae['image'] = pd.Series(image_names)
+    datafrmae['npy'] = pd.Series(np_file_names)
+    datafrmae['id'] = pd.Series(ids)
+    datafrmae.to_csv(f'{index}_npy_image.csv', mode='w')
 
         
     
