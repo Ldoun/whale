@@ -91,13 +91,13 @@ class SingleImageDataloader(Dataset):
         data_dir,
         dataframe,
         image_size,
-        test = False
+        train = True
     ):
         super().__init__()
 
         self.data_dir = data_dir
         self.data = dataframe.copy()
-        self.test = test
+        self.train = train
         self.transforms = A.Compose([
             A.Resize(image_size, image_size),
             A.Normalize(
@@ -117,12 +117,12 @@ class SingleImageDataloader(Dataset):
         image = np.array(Image.open(os.path.join(self.data_dir,image_name)).convert('RGB'))
         image = self.transforms(image=image)["image"]
         
-        if self.test: 
-            whale_id = None
-        else:
+        if self.train: 
             whale_id = self.data.iloc[idx]['individual_id']
+            return image, whale_id, image_name
+        else:
+            return image, image_name
                 
-        return image, whale_id, image_name
     
 def get_data_loaders(train_dataset, valid_dataset, config):
     train_sampler = torch.utils.data.distributed.DistributedSampler(

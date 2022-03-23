@@ -119,7 +119,7 @@ if __name__ == '__main__':
             data_dir = config.image_path,
             dataframe = data,
             image_size = 448,
-            test=True
+            train=False
         )
 
         data_loader = DataLoader(
@@ -149,7 +149,7 @@ if __name__ == '__main__':
         with torch.no_grad():
             for batch_idx, data in enumerate(data_loader):
                 print(f'{batch_idx}/{n_iter}', flush=True)
-                image, whale_id, image_name = data
+                image, image_name = data
                 image = image.to(device)
             
                 image_feature, logit_scale = model.encode_image(image)
