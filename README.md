@@ -1,2 +1,2 @@
 # kaggle_happy_whale
-Modify pytorch boiler plate for multi tpu feature
+with help of google tpu research cloud
