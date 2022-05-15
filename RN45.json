@@ -1,7 +1,7 @@
 {
     "name": "RN45",
-    "nprocs": 8,
-    "csv": "eda/image_combination.csv",
+    "ngpu": 1,
+    "csv": "eda/image_combination2.csv",
 
     "arch": {
         "type": "ClipImageEncoer",
@@ -24,7 +24,7 @@
             "data_dir": "../train_data",
             "image_size": 448
         }
-    },
+    },  
     "data_loader": {
         "batch_size": 128,
         "num_workers": 2,
