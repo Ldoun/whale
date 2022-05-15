@@ -21,7 +21,7 @@
     "dataset": {
         "type": "ImageDataset",
         "args":{
-            "data_dir": "../train_data",
+            "data_dir": "/home/20223185/whale_data/train_images",
             "image_size": 448
         }
     },  
