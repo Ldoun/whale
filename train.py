@@ -26,7 +26,7 @@ def main(config):
     config.init_logger()
     logger = config.get_logger('train')
     
-    data = pd.read_csv(config['csv'])
+    data = pd.read_csv(config['csv'],sep='\t')
     train_data, valid_data = train_test_split(data, test_size=0.2)
     
     # setup data_loader instances
