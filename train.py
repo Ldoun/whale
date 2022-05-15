@@ -2,9 +2,6 @@ import argparse
 import collections
 import torch
 from torch.utils.data import DataLoader
-import torch_xla.core.xla_model as xm
-import torch_xla.distributed.parallel_loader as pl
-import torch_xla.distributed.xla_multiprocessing as xmp
 from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
@@ -15,6 +12,7 @@ import model.metric as module_metric
 import model.model as module_arch
 from parse_config import ConfigParser
 from trainer import Trainer
+from utils import prepare_device
 
 
 # fix random seeds for reproducibility
@@ -24,7 +22,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(SEED)
 
-def main(index, config):
+def main(config):
     config.init_logger()
     logger = config.get_logger('train')
     
@@ -42,8 +40,10 @@ def main(index, config):
     logger.info(model)
 
     # prepare for (multi-device) TPU training
-    device = xm.xla_device()
+    device, device_ids = prepare_device(config['n_gpu'])
     model = model.to(device)
+    if len(device_ids) > 1:
+        model = torch.nn.DataParallel(model, device_ids=device_ids)
     
     # get function handles of loss and metrics
     criterion = getattr(module_loss, config['loss'])
@@ -53,10 +53,6 @@ def main(index, config):
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = config.init_obj('optimizer', torch.optim, trainable_params)
     lr_scheduler = config.init_obj('lr_scheduler', module_scheduler, optimizer)
-
-    #loads the training data onto each tpu
-    train_dataloader = pl.MpDeviceLoader(train_dataloader,device)
-    valid_dataloader = pl.MpDeviceLoader(valid_dataloader,device)
 
     trainer = Trainer(model, criterion, metrics, optimizer,
                       config=config,
@@ -84,4 +80,5 @@ if __name__ == '__main__':
         CustomArgs(['--log_step'], type=int, target='trainer;log_step')
     ]
     config = ConfigParser.from_args(args, options)
-    xmp.spawn(main, args=(config,), nprocs=config["nprocs"])   
+    main(config)
+  

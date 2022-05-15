@@ -1,7 +1,6 @@
 import numpy as np
 import time
 import torch
-import torch_xla.core.xla_model as xm
 from torchvision.utils import make_grid
 from base import BaseTrainer
 from utils import inf_loop, MetricTracker
@@ -14,7 +13,6 @@ class Trainer(BaseTrainer):
         super().__init__(model, criterion, metric_ftns, optimizer, lr_scheduler, config)
         self.config = config
         self.device = device
-        self.device_num =  xm.get_ordinal()
         self.n_samples = len(data_loader)
         self.data_loader = data_loader
         
@@ -34,46 +32,21 @@ class Trainer(BaseTrainer):
         self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
         
-    def _compute_loss(self, image1, image2, ids, rank, bs):
+        
+    #single gpu (multi gpu training X)
+    def _compute_loss(self, image1, image2, ids):
         image1_feature, image2_feature, logit_scale = self.model(image1,image2)
         logit_scale = logit_scale.mean()
+               
+        one,zero = torch.ones(len(ids), dtype=torch.float, device=self.device), torch.zeros(len(ids), dtype=torch.float, device=self.device)
+        ground_truth = torch.stack([torch.where(ids==ids[i], one, zero) for i in range(len(ids))])
         
-        gatered_image1_featuture = xm.all_gather(image1_feature)
-        all_image1_featuture = torch.cat(
-            [gatered_image1_featuture[:rank * bs]]
-            +[image1_feature]
-            + [gatered_image1_featuture[(rank + 1) *bs :]]
-        )
-        gatered_image2_featuture = xm.all_gather(image2_feature)
-        all_image2_featuture = torch.cat(
-            [gatered_image2_featuture[:rank * bs]]
-            +[image2_feature]
-            + [gatered_image2_featuture[(rank + 1) *bs :]]
-        )
-        
-        gathered_ids = xm.all_gather(ids)
-        one,zero = torch.ones(len(gathered_ids), dtype=torch.float, device=self.device), torch.zeros(len(gathered_ids), dtype=torch.float, device=self.device)
-        ground_truth = torch.stack([torch.where(gathered_ids==gathered_ids[i], one, zero) for i in range(len(gathered_ids))])
-        
-        logits_per_image = logit_scale * all_image1_featuture @ all_image2_featuture.t()
+        logits_per_image = logit_scale * image1_feature @ image2_feature.t()
         #ground_truth = torch.arange(len(logits_per_image)).long().to(self.device)
         
         loss = self.criterion(logits_per_image, ground_truth)
-        return loss, logits_per_image[rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
-    
-    def _val_compute(self, image1, image2, ids, rank, bs):
-        image1_feature, image2_feature, logit_scale = self.model(image1,image2)
-        logit_scale = logit_scale.mean()
-        
-        gatered_image1_featuture = xm.all_gather(image1_feature)
-        gatered_image2_featuture = xm.all_gather(image2_feature)
-        gathered_ids = xm.all_gather(ids)
-        
-        one,zero = torch.ones(len(gathered_ids), dtype=torch.float, device=self.device), torch.zeros(len(gathered_ids), dtype=torch.float, device=self.device)
-        ground_truth = torch.stack([torch.where(gathered_ids==gathered_ids[i], one, zero) for i in range(len(gathered_ids))])
-        logits_per_image = logit_scale * gatered_image1_featuture @ gatered_image2_featuture.t()
-        return logits_per_image[rank*bs:(rank+1)*bs], ground_truth[rank*bs:(rank+1)*bs]
-        
+        return loss, logits_per_image, ground_truth
+            
     def _train_epoch(self, epoch):
         """
         Training logic for an epoch
@@ -85,28 +58,26 @@ class Trainer(BaseTrainer):
         start = time.time()
         for batch_idx, (image1, image2, ids) in enumerate(self.data_loader):
             self.optimizer.zero_grad()
-            loss, logit, ground_truth = self._compute_loss(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'])
+            loss, logit, ground_truth = self._compute_loss(image1, image2, ids)
             loss.backward()
-            xm.optimizer_step(self.optimizer)
+            self.optimizer.step()
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
+                
+            self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
+            self.train_metrics.update('loss', loss.item())
+            for met in self.metric_ftns:
+                self.train_metrics.update(met.__name__, met(logit, ground_truth))
         
             if batch_idx % self.log_step == 0:
-                float_loss = xm.mesh_reduce('loss_tensor_reduce',loss.item(),np.mean)
                 run_time = time.time() - start
                 start = time.time()
                 self.logger.debug('Train Epoch: {} {} Loss: {:.6f} Run time {:.2f}'.format(
                     epoch,
                     self._progress(batch_idx),
-                    float_loss,
+                    loss.item(),
                     run_time))
                 #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
-                if self.writer is not None:
-                    self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
-                self.train_metrics.update('loss', float_loss) #tpu lazy need to call item per nstep
-                for met in self.metric_ftns:
-                    met_score = xm.mesh_reduce('met_score', met(logit, ground_truth), np.mean)
-                    self.train_metrics.update(met.__name__, met_score)
             
             if batch_idx == self.len_epoch:
                 break
@@ -116,6 +87,7 @@ class Trainer(BaseTrainer):
             log.update(**{'val_'+k : v for k, v in val_log.items()})
         
         return log
+    
     def _valid_epoch(self, epoch):
         """
         Validate after training an epoch
@@ -124,26 +96,27 @@ class Trainer(BaseTrainer):
         """
         self.model.eval()
         self.valid_metrics.reset()
-        n_iter = len(self.valid_data_loader)
+        
         with torch.no_grad():
             for batch_idx, (image1, image2, ids) in enumerate(self.valid_data_loader):
-                logit, ground_truth = self._val_compute(image1, image2, ids, self.device_num, self.config['data_loader']['batch_size'])
-                #self.valid_metrics.update('loss', xm.mesh_reduce('valid_loss_reduce',loss.item(),np.mean))
+                loss, logit, ground_truth = self._compute_loss(image1, image2, ids)
+                
+                self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
+                self.valid_metrics.update('loss', loss.item())
+                
                 for met in self.metric_ftns:
-                    met_score = xm.mesh_reduce('valid_met_score', met(logit, ground_truth), np.mean)
-                    self.valid_metrics.update(met.__name__, met_score)
-                if self.writer is not None:
-                    self.writer.set_step((epoch - 1) * n_iter + batch_idx, 'valid')
-                    #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                    self.valid_metrics.update(met.__name__, met(logit, ground_truth))
+                #self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+        
         # add histogram of model parameters to the tensorboard
-        if self.writer is not None:
-            for name, p in self.model.named_parameters():
-                self.writer.add_histogram(name, p, bins='auto')
+        for name, p in self.model.named_parameters():
+            self.writer.add_histogram(name, p, bins='auto')
         return self.valid_metrics.result()
+    
     def _progress(self, batch_idx):
         base = '[{}/{} ({:.0f}%)]'
         if hasattr(self.data_loader, 'n_samples'):#iteration mode
-            current = batch_idx * self.config['data_loader']['batch_size']
+            current = batch_idx * self.data_loader.n_samples
             total = self.n_samples
         else:
             current = batch_idx

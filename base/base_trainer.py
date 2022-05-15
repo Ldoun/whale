@@ -2,7 +2,6 @@ import torch
 from abc import abstractmethod
 from numpy import inf
 from logger import TensorboardWriter
-import torch_xla.core.xla_model as xm
 
 
 class BaseTrainer:
@@ -41,11 +40,8 @@ class BaseTrainer:
 
         self.checkpoint_dir = config.save_dir
 
-        # setup visualization writer instance    
-        if xm.is_master_ordinal() and cfg_trainer['tensorboard']:            
-            self.writer = TensorboardWriter(config.log_dir, self.logger, cfg_trainer['tensorboard'])
-        else:
-            self.writer = None
+    # setup visualization writer instance              
+        self.writer = TensorboardWriter(config.log_dir, self.logger, cfg_trainer['tensorboard'])
 
         if config.resume is not None:
             self._resume_checkpoint(config.resume)
@@ -124,11 +120,11 @@ class BaseTrainer:
             'config': self.config
         }
         filename = str(self.checkpoint_dir / 'checkpoint-epoch{}.pth'.format(epoch))
-        xm.save(state, filename)
+        torch.save(state, filename)
         self.logger.info("Saving checkpoint: {} ...".format(filename))
         if save_best:
             best_path = str(self.checkpoint_dir / 'model_best.pth')
-            xm.save(state, best_path)
+            torch.save(state, best_path)
             self.logger.info("Saving current best: model_best.pth ...")
 
     def _resume_checkpoint(self, resume_path):
