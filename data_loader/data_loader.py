@@ -5,10 +5,6 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-try:
-    import torch_xla.core.xla_model as xm
-except:
-    pass
 from torchvision import transforms
 import numpy as np
 import albumentations as A
@@ -125,33 +121,18 @@ class SingleImageDataloader(Dataset):
                 
     
 def get_data_loaders(train_dataset, valid_dataset, config):
-    train_sampler = torch.utils.data.distributed.DistributedSampler(
-        train_dataset,
-        num_replicas=xm.xrt_world_size(),
-        rank=xm.get_ordinal(),
-        shuffle=True
-    )
-  
-    valid_sampler = torch.utils.data.distributed.DistributedSampler(
-        valid_dataset,
-        num_replicas=xm.xrt_world_size(),
-        rank=xm.get_ordinal(),
-        shuffle=False
-    )
-  
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=config['data_loader']['batch_size'],
-        sampler=train_sampler,
         num_workers=config['data_loader']['num_workers'],
         pin_memory=config['data_loader']['pin_memory'],
-        drop_last=config['data_loader']['drop_last']
+        drop_last=config['data_loader']['drop_last'],
+        shuffle=True
     )
     
     valid_dataloader = DataLoader(
         valid_dataset,
         batch_size=config['data_loader']['batch_size'],
-        sampler=valid_sampler,
         num_workers=config['data_loader']['num_workers'],
         pin_memory=config['data_loader']['pin_memory'],
         drop_last=config['data_loader']['drop_last'],
