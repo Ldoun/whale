@@ -1,3 +1,4 @@
+from zmq import device
 import numpy as np
 import time
 import torch
@@ -57,6 +58,7 @@ class Trainer(BaseTrainer):
         self.train_metrics.reset()
         start = time.time()
         for batch_idx, (image1, image2, ids) in enumerate(self.data_loader):
+            image1, image2, ids = image1.to(self.device), image2.to(self.device), ids.to(self.device)
             self.optimizer.zero_grad()
             loss, logit, ground_truth = self._compute_loss(image1, image2, ids)
             loss.backward()
